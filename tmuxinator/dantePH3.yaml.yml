@@ -1,0 +1,14 @@
+# /home/kali/.config/tmuxinator/dantePH3.yaml.yml
+
+name: dantePH3
+root: ~/
+startup_window: PH3DC02
+
+windows:
+  - PH3DC02:
+      root: ~/
+      layout: even-vertical
+      panes:
+        - DC02:
+          - wt
+          - evil-winrm -i 172.16.2.5 -u administrator -H "4c827b7074e99eefd49d05872185f7f8"

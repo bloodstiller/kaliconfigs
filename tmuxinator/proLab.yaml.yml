@@ -1,0 +1,37 @@
+# /home/kali/.config/tmuxinator/proLab.yaml.yml
+
+name: proLab
+root: ~/
+startup_window: ligolo
+
+windows:
+  - btop:
+      root: ~/
+      layout: even-vertical
+      panes:
+        - btop
+  - emacs:
+      root: ~/
+      layout: even-vertical
+      panes:
+        - emacs:
+          - cl
+          - emacs
+  - ligolo:
+      root: ~/
+      layout: tiled
+      panes:
+        - ligolo:
+          - lgu
+          - sleep 7
+          - proxy -selfcert
+        - linux-python-server:
+            - cd ~/Desktop/LinuxTools
+            - ls
+            - python -m http.server 9000
+        - ifconfig:
+            - sleep 5
+            - ifconfig
+            - sudo ip route add 172.16.1.0/24 dev ligolo
+            - sleep 5
+            - sudo ip route add 172.16.2.0/24 dev ligolo

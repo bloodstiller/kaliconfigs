@@ -1,0 +1,13 @@
+# /home/kali/.config/tmuxinator/proVPN.yaml.yml
+
+name: proVPN
+root: ~/
+startup_window: vpn
+attach: false
+
+windows:
+  - vpn:
+      root: ~/
+      layout: even-vertical
+      panes:
+        - sudo openvpn ~/Dropbox/40-49_Career/pro_labs_ScaredGrandpa.ovpn

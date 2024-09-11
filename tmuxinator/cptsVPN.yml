@@ -1,0 +1,13 @@
+# /home/kali/.config/tmuxinator/cptsVPN.yml
+
+name: cptsVPN
+root: ~/
+startup_window: vpn
+attach: false
+
+windows:
+  - vpn:
+      root: ~/
+      layout: even-vertical
+      panes:
+        - sudo openvpn ~/Dropbox/40-49_Career/41-Courses/41.22-CPTS/Exam/Org/Notes/HTB_Certified_Penetration_Testing_Specialist.ovpn
