@@ -207,7 +207,7 @@ export PATH=$PATH:/home/kali/.local/bin
 export IP="10.129.187.147"
 
 # Launch Bloodhound
-alias bh='docker compose -f ~/Desktop/WindowsTools/bloodhound/docker-compose.yml up && echo "bh starting"'
+alias bh='docker compose -f ~/.dotfiles/bloodhound/docker-compose.yml up && echo "bh starting"'
 
 ### This is used to easily set the tun0 adapter to be monitored
 ### I can then easily call it in the variable $myip in tmuxinator scripts etc.
