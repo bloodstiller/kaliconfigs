@@ -11,7 +11,7 @@ plugins=(git
   fast-syntax-highlighting
   zsh-autocomplete
 )
-source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+source ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 
 source $ZSH/oh-my-zsh.sh
