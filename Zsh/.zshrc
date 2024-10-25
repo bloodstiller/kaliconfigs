@@ -154,80 +154,101 @@ fi
 if [ -f /etc/zsh_command_not_found ]; then
     . /etc/zsh_command_not_found
 fi
+# Set default editor to Emacs
+EDITOR='emacs'
 
+# Aliases for exa (a modern replacement for 'ls')
 alias ls='exa -T -L=1 -a -B -h -l -g --icons'
 alias lsl='exa -T -L=2 -a -B -h -l -g --icons'
 alias lss='exa -T -L=1 -B -h -l -g --icons'
 
+# Alias for 'batcat' (a syntax-highlighting replacement for 'cat')
 alias cat='batcat'
 
+# Alias to run Doom Emacs
 alias doom='~/.config/emacs/bin/doom'
 
+# Alias for running AutoRecon (with sudo) and preserving the $PATH
 alias autorecon='sudo env "PATH=$PATH" autorecon'
 
-alias virtnet='sudo virsh net-start default &'
 
+# URL decode function using Python3
 alias urldecode='python3 -c "import sys, urllib.parse as ul; \
     print(ul.unquote_plus(sys.argv[1]))"'
 
+# URL encode function using Python3
 alias urlencode='python3 -c "import sys, urllib.parse as ul; \
     print (ul.quote_plus(sys.argv[1]))"'
 
-alias tmux-save-pane='tmux capture-pane -pS -'
+# Aliases for quick access to specific directories
+alias cpts='~/Dropbox/40-49_Career/41-Courses/41.22-CPTS'   # Access CPTS course folder
+alias bx='~/Dropbox/40-49_Career/46-Boxes/46.02-HTB/Access'  # Access HTB Box folder
 
-alias cpts='~/Dropbox/40-49_Career/41-Courses/41.22-CPTS'
+# Export the IP address of a target box
+export box="10.129.199.196"
 
-alias bx='~/Dropbox/40-49_Career/46-Boxes/46.02-HTB'
+# Aliases for quick access to tools directories
+alias wt='~/windowsTools'
+alias lt='~/linuxTools'
 
-alias wt='~/Desktop/WindowsTools'
+# Start a Python HTTP server on port 9000
+alias pws='python3 -m http.server 9000'
 
-alias lt='~/Desktop/LinuxTools'
-
-alias pws='python3 -m http.server 8000'
-
+# Set up a tunneling interface using ligolo
 alias lgu='sudo ip tuntap add user kali mode tun ligolo && sudo ip link set ligolo up'
 
-#nbx () {
-    #mkdir loot scans exploit creds
-    #mkdir -p scans/nmap scans/bh
-    #mkdir -p creds/hashes creds/usernames creds/passwords
-#}
+# Alias for quick access to the folder of the current exam
+alias cl="~/Dropbox/40-49_Career/41-Courses/41.22-CPTS/Exam/Org"
 
-alias dl="~/Dropbox/40-49_Career/46-Boxes/46.02-HTB/DanteLab/PentTest/Org"
+# Add local bin directory to the system PATH
+export PATH=$PATH:/home/kali/.local/bin
 
-alias npt="~/.config/scripts/newpentest.sh"
+# Export IP address for target environment
+export IP="10.129.187.147"
 
-alias key='0x79ea004594bd7e09'
+# Launch Bloodhound
+alias bh='docker compose -f ~/Desktop/WindowsTools/bloodhound/docker-compose.yml up && echo "bh starting"'
 
-alias rkey='gpg-connect-agent "scd serialno" "learn --force" /bye'
+### This is used to easily set the tun0 adapter to be monitored
+### I can then easily call it in the variable $myip in tmuxinator scripts etc.
+# Define the shared file path
+#
+MYIP_FILE="$HOME/.myip"
 
-function secret () {
-                output=~/"${1}".$(date +%s).enc
-                gpg --encrypt --armor --output ${output} -r 0x79ea004594bd7e09 -r admin@mdbdev.io "${1}" && echo "${1} -> ${output}"
+# Check for my IP, useful when launching VPN's and it changes.
+update_myip() {
+    if ip -o -4 addr list tun0 &>/dev/null; then
+        myip=$(ip -o -4 addr list tun0 | awk '{print $4}' | cut -d/ -f1)
+        export myip
+        echo "$myip" > $MYIP_FILE
+    else
+        unset myip
+        echo "" > $MYIP_FILE
+    fi
 }
 
-function reveal () {
-                output=$(echo "${1}" | rev | cut -c16- | rev)
-                gpg --decrypt --output ${output} "${1}" && echo "${1} -> ${output}"
+# Function to periodically check and update myip
+watch_myip() {
+    while true; do
+        update_myip
+        sleep 10  # Check every 60 seconds; adjust as necessary
+    done
 }
 
-##function start_logging_tmux_session() {
-    ##local logfile=~/tmux_logs/$(date +%Y-%m-%d).log
-    ##tmux list-windows -a -F '#{session_name}:#{window_index}' | while read window; do
-        ##tmux list-panes -t $window -F '#{session_name}:#{window_index}.#{pane_index}' | while read pane; do
-            ##tmux pipe-pane -o -t $pane "ansifilter >> ${logfile}_${pane//:/_}"
-        ##done
-    ##done
-##}
-##
-##
-##alias tml='start_logging_tmux_session'
+# Initial check when the shell starts
+update_myip
 
-#!/usr/bin/env bash
+# Source the shared file to get the latest myip in tmux
+if [ -f $MYIP_FILE ]; then
+    myip=$(cat $MYIP_FILE)
+    export myip
+fi
 
-#!/usr/bin/env bash
+# Run the watch_myip function in the background
+watch_myip & disown
 
 
+# Auto Tmux Loggin:
 if [ -n "$TMUX_PANE" ] && [ "$TMUX_PANE_LOGGING" != "1" ]; then
   export TMUX_PANE_LOGGING=1
   LOGS=$HOME/tmux_logs/$(date +%Y-%m-%d)
@@ -236,10 +257,18 @@ if [ -n "$TMUX_PANE" ] && [ "$TMUX_PANE_LOGGING" != "1" ]; then
   tmux pipe-pane -o -t "${TMUX_PANE}" "exec cat - | ansifilter >> $LOG_PATH"
 fi
 
-alias dbs='dropbox start'
 
+# This autolaunches TMUX if not launched:
 #if [[ -z "$TMUX" && -z "$SSH_CONNECTION" && -n "$DISPLAY" ]]; then
 #  exec tmux new-session -A -s default \; source-file ~/.tmux.conf
 #fi
+
+# Used to easily update vars
+# use like this update_var <varName> "<newVarValue>"
+update_var() {
+      sed -i "s/^export $1=.*/export $1=\"$2\"/" ~/.zshrc
+          source ~/.zshrc
+        }
+
 
 eval "$(starship init zsh)"
