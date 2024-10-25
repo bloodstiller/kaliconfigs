@@ -5,7 +5,7 @@ ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
 ZSH_THEME="jonathan"
 
 plugins=(git
-  #tmux Activate this if we want autolaunch of  tmux sessions
+  tmux
   zsh-autosuggestions
   zsh-syntax-highlighting
   fast-syntax-highlighting
@@ -155,9 +155,6 @@ if [ -f /etc/zsh_command_not_found ]; then
     . /etc/zsh_command_not_found
 fi
 
-
-export EDITOR='emacs'
-
 alias ls='exa -T -L=1 -a -B -h -l -g --icons'
 alias lsl='exa -T -L=2 -a -B -h -l -g --icons'
 alias lss='exa -T -L=1 -B -h -l -g --icons'
@@ -178,12 +175,9 @@ alias urlencode='python3 -c "import sys, urllib.parse as ul; \
 
 alias tmux-save-pane='tmux capture-pane -pS -'
 
-
 alias cpts='~/Dropbox/40-49_Career/41-Courses/41.22-CPTS'
 
-alias bx='~/Dropbox/40-49_Career/46-Boxes/46.02-HTB/Monteverde'
-
-export bxip='10.129.186.223'
+alias bx='~/Dropbox/40-49_Career/46-Boxes/46.02-HTB'
 
 alias wt='~/Desktop/WindowsTools'
 
@@ -199,11 +193,7 @@ alias lgu='sudo ip tuntap add user kali mode tun ligolo && sudo ip link set ligo
     #mkdir -p creds/hashes creds/usernames creds/passwords
 #}
 
-# This will by changes to refelct the current lab I am working on
-alias cl="~/Dropbox/40-49_Career/41-Courses/41.22-CPTS/Exam/Org"
-
-#myip=$(ip -o -4 addr list tun0 | awk '{print $4}' | cut -d/ -f1)
-#export myip
+alias dl="~/Dropbox/40-49_Career/46-Boxes/46.02-HTB/DanteLab/PentTest/Org"
 
 alias npt="~/.config/scripts/newpentest.sh"
 
@@ -221,10 +211,6 @@ function reveal () {
                 gpg --decrypt --output ${output} "${1}" && echo "${1} -> ${output}"
 }
 
-export PATH=$PATH:/home/kali/.local/bin
-
-export IP="10.129.186.223"
-
 ##function start_logging_tmux_session() {
     ##local logfile=~/tmux_logs/$(date +%Y-%m-%d).log
     ##tmux list-windows -a -F '#{session_name}:#{window_index}' | while read window; do
@@ -237,44 +223,9 @@ export IP="10.129.186.223"
 ##
 ##alias tml='start_logging_tmux_session'
 
-### This is used to easily set the tun0 adapter to be monitored
-### I can then easily call it in the variable $myip in tmuxinator scripts etc.
-# Define the shared file path
-#
-MYIP_FILE="$HOME/.myip"
+#!/usr/bin/env bash
 
-# Define the function in your .zshrc
-update_myip() {
-    if ip -o -4 addr list tun0 &>/dev/null; then
-        myip=$(ip -o -4 addr list tun0 | awk '{print $4}' | cut -d/ -f1)
-        export myip
-        echo "$myip" > $MYIP_FILE
-    else
-        unset myip
-        echo "" > $MYIP_FILE
-    fi
-}
-
-# Function to periodically check and update myip
-watch_myip() {
-    while true; do
-        update_myip
-        sleep 10  # Check every 60 seconds; adjust as necessary
-    done
-}
-
-# Initial check when the shell starts
-update_myip
-
-# Source the shared file to get the latest myip in tmux
-if [ -f $MYIP_FILE ]; then
-    myip=$(cat $MYIP_FILE)
-    export myip
-fi
-
-# Run the watch_myip function in the background
-watch_myip & disown
-
+#!/usr/bin/env bash
 
 
 if [ -n "$TMUX_PANE" ] && [ "$TMUX_PANE_LOGGING" != "1" ]; then
@@ -292,5 +243,3 @@ alias dbs='dropbox start'
 #fi
 
 eval "$(starship init zsh)"
-: undercover && export PS1='C:${PWD//\//\\}> '
-: undercover && new_line_before_prompt=no
