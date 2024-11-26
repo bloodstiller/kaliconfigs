@@ -194,17 +194,15 @@ alias lt='~/linuxTools'
 # Start a Python HTTP server on port 9000
 alias pws='python3 -m http.server 9000'
 
-# Set up a tunneling interface using ligolo
-alias lgu='sudo ip tuntap add user kali mode tun ligolo && sudo ip link set ligolo up'
+# Set up a tunneling interfaces using ligolo
+alias lgu1='sudo ip tuntap add user kali mode tun ligolo && sudo ip link set ligolo up'
+alias lgu2='sudo ip tuntap add user kali mode tun ligolo-double && sudo ip link set ligolo-double up'
 
 # Alias for quick access to the folder of the current exam
 alias cl="~/Dropbox/40-49_Career/41-Courses/41.22-CPTS/Exam/Org"
 
 # Add local bin directory to the system PATH
 export PATH=$PATH:/home/kali/.local/bin
-
-# Export IP address for target environment
-export IP="10.129.187.147"
 
 # Launch Bloodhound
 alias bh='docker compose -f ~/.dotfiles/bloodhound/docker-compose.yml up && echo "bh starting"'
