@@ -1,7 +1,5 @@
-(setq user-full-name "3macS3c")
+(setq user-full-name "bloodstiller")
 
-;;Select my preffered theme:
-(setq doom-theme 'doom-dracula)
 ;; This determines the style of line numbers in effect. If set to `nil', line
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
 (setq display-line-numbers-type t)
@@ -10,6 +8,8 @@
 
 (when (version< "29.0.50" emacs-version)
   (pixel-scroll-precision-mode))
+
+(setq doom-theme 'doom-one)
 
 ;;Global Auto Revert
 (global-auto-revert-mode 1)
@@ -88,6 +88,80 @@
       :desc "Org Decrypt Entry"
       "d e" #'org-decrypt-entry)
 
+;; Org super agenda setup:
+ (use-package! org-super-agenda
+   :after org-agenda
+   :init
+   (setq org-agenda-skip-scheduled-if-done t
+       org-agenda-skip-deadline-if-done t
+       org-agenda-include-deadlines t
+       org-agenda-start-day nil ;; i.e. today
+       org-agenda-span 1
+       org-agenda-start-on-weekday nil)
+   (setq org-agenda-custom-commands
+         '(("c" "Super view"
+                      ((agenda "" ((org-agenda-span 'day)
+                       (org-super-agenda-groups
+                        '((:name "⏰⏰⏰⏰⏰ --- Today --- ⏰⏰⏰⏰⏰"
+                           :discard (:todo "DONE")
+                           :discard (:tag "habit")
+                           :time-grid t
+                           :date today
+                           :todo "TODAY"
+                           :scheduled today
+                           :discard (:anything)
+                           :order 1)))))
+                       (alltodo "" ((org-agenda-overriding-header "CURRENT STATUS")
+                                    (org-agenda-prefix-format "  %t  %s")
+                          (org-super-agenda-groups
+                           '((:log t)
+                             (:name " 🚧🚧🚧 --- ACTIVE PROJECT(s) --- 🚧🚧🚧 "
+                              :todo "PROJECT"
+                              :order 6
+                              :transformer (--> it
+                                   (upcase it)
+                                   (propertize it 'face '(:foreground "SlateBlue1"))))
+                             (:name "〰️〰️〰 --- Currently Working On --- 〰〰〰"
+                                    :todo "IN-PROGRESS"
+                                    :order 4)
+                             (:name "❗❗❗ --- Important --- ❗❗❗"
+                                    :date today
+                                    :discard (:todo "DONE")
+                                    :priority "A"
+                                    :order 10)
+                             (:name "✅✅✅ --- GOAL --- ✅✅✅"
+                                    :todo "GOAL"
+                                    :order 2
+                                    :transformer (--> it
+                                         (upcase it)
+                                         (propertize it 'face '(:foreground "LimeGreen"))))
+                             (:name "✅✅✅ --- WEEKLY-GOALS --- ✅✅✅"
+                                    :todo "WEEKLY-GOAL"
+                                    :order 3
+                                    :transformer (--> it
+                                         (upcase it)
+                                         (propertize it 'face '(:foreground "light sea green"))))
+                             (:name "❌⚠❌ --- Overdue! --- ❌⚠❌"
+                                    :discard (:todo "DONE")
+                                    :deadline past
+                                    :scheduled past
+                                    :transformer (--> it
+                                         (upcase it)
+                                         (propertize it 'face '(:foreground "red")))
+                                    :order 5)
+                             (:name "🇧🇧🇧 --- WORK --- 🇧🇧🇧"
+                                    :and (:tag "WORK" :todo "WORK")
+                                    :order 9)
+                             (:name "✔✔✔ --- HABIT --- ✔✔✔"
+                                    :and (:scheduled today :tag "habit")
+                                    :transformer (--> it
+                                         (upcase it)
+                                         (propertize it 'face '(:foreground "royalblue1")))
+                                    :order 20)
+                            (:discard (:anything))))))))))
+   :config
+   (org-super-agenda-mode))
+
 (map! :leader
       :desc "recenter-top-bottom"
       "s c" #'recenter-top-bottom)
@@ -96,6 +170,13 @@
 (setq org-startup-with-inline-images t)
 ;;Adjust images to an actual size that doesn't take up the entire screen.
 (setq org-image-actual-width 600)
+
+(require 'org-download)
+(setq-default org-download-image-dir "~/Dropbox/screenshots/")
+;;Allows dropping to dir-ed
+(add-hook 'dired-mode-hook 'org-download-enable)
+
+(setq org-attach-directory "~/Dropbox/screenshots/")
 
 ;; Enables auto tangling/exporting of code blocks to a unified code file form org mode.
 (use-package! org-auto-tangle
@@ -125,24 +206,14 @@
 (after! org
 (setq org-hide-emphasis-markers t))
 
-;;Customize ORG higlighting
-;; this controls the color of bold, italic, underline, verbatim, strikethrough
-
 (after! org
 (setq org-emphasis-alist
-    ;; Purple Bold & Underline Brighter purple
-  '(("*" (underline :weight black :foreground "#A061F9" ))
-    ;; Red text highligted in yellow (important)
-    ("/" (:weight black :background "#FF5555" :foreground "#F1FA8C" ))
-    ;; Blue
+  '(("*" (underline :weight black :foreground "#EB00E4" ))
+   ;; ("/" (:weight black :background "#745B00" :foreground "#FF3D2B" ))
     ("_" (:weight black :foreground "#79c6ff" ))
-    ;;Higlighter  brighter yellow
-    ("=" (underline :weight black :foreground "#F1FA8C" ))
-    ;; Code block
-    ("~" (:background "#6BB86B" :foreground "#575a71" ))
-    ;; Red = Important red
-    ("+" (underline bold :weight italic :foreground "#FF5555" )))))
-    ;;("+" (bold :strike-through nil :foreground "#ffb86c" #cd5c5c )))))
+    ("=" (underline :weight black :foreground "#b18c00" ))
+    ("~" (:foreground "#6BB86B" ))
+    ("+" (underline bold :weight italic :foreground "#FF3D2B" )))))
 
 (setq org-superstar-headline-bullets-list '("› "))
 
@@ -169,82 +240,165 @@
 (require 'org-indent)
 (setq org-startup-indented t)
 
-;; Markdown & line settings
-(setq display-line-numbers-type t)
-(map! :leader
-      :desc "Comment or uncomment lines" "TAB TAB" #'comment-line
-      (:prefix ("t" . "toggle")
-       :desc "Toggle line numbers" "l" #'doom/toggle-line-numbers
-       :desc "Toggle line highlight in frame" "h" #'hl-line-mode
-       :desc "Toggle line highlight globally" "H" #'global-hl-line-mode
-       :desc "Toggle truncate lines" "t" #'toggle-truncate-lines))
+(require 'org-roam)
+(setq org-roam-directory "~/Dropbox")
 
-;Markdown: Set Custom Headers:
-(custom-set-faces!
- ;; Headers
-'(markdown-header-delimiter-face :foreground "#616161" :height 0.9)
-'(markdown-header-face-1 :height 1.8 :foreground "#FF79C6" :weight extra-bold :inherit markdown-header-face)
-'(markdown-header-face-2 :height 1.4 :foreground "#BD93F9" :weight extra-bold :inherit markdown-header-face)
-'(markdown-header-face-3 :height 1.2 :foreground "#D4B8FB" :weight extra-bold :inherit markdown-header-face)
-'(markdown-header-face-4 :height 1.15 :foreground "#FFA7D9" :weight bold :inherit markdown-header-face)
-'(markdown-header-face-5 :height 1.1 :foreground "#E4D3FC" :weight bold :inherit markdown-header-face)
-'(markdown-header-face-6 :height 1.05 :foreground "#5e81ac" :weight semi-bold :inherit markdown-header-face)
+(after! org-roam
+  (setq org-roam-list-files-commands '(find fd fdfind rg)))
 
-;;; Custom bold etc
-'(markdown-code-face :background "#6BB86B" :foreground "#575a71")
-'(markdown-line-break-face :weight extra-black :foreground "#79c6ff")
-'(markdown-italic-face :weight black :foreground "#79c6ff")
-'(markdown-list-face :weight black :foreground "#BD93F9")
-'(markdown-bold-face :weight black :foreground "#A061F9"))
+;Roam - Capture Templates:
+(setq org-roam-capture-templates
+'(("d" "default" plain
+      "%?"
+      :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+      :unnarrowed t)
 
-;; Enables markdown preview whilst creating doc.
- (defvar nb/current-line '(0 . 0)
-   "(start . end) of current line in current buffer")
- (make-variable-buffer-local 'nb/current-line)
+ ("A" "Application" plain
+  (file "~/.config/orgTemplates/Application.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
 
- (defun nb/unhide-current-line (limit)
-   "Font-lock function"
-   (let ((start (max (point) (car nb/current-line)))
-         (end (min limit (cdr nb/current-line))))
-     (when (< start end)
-       (remove-text-properties start end
-                       '(invisible t display "" composition ""))
-       (goto-char limit)
-       t)))
+ ("a" "Attack Type" plain
+  (file "~/.config/orgTemplates/AttackTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
 
- (defun nb/refontify-on-linemove ()
-   "Post-command-hook"
-   (let* ((start (line-beginning-position))
-          (end (line-beginning-position 2))
-          (needs-update (not (equal start (car nb/current-line)))))
-     (setq nb/current-line (cons start end))
-     (when needs-update
-       (font-lock-fontify-block 3))))
+ ("b" "Box" plain
+  (file "~/.config/orgTemplates/BoxTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
 
- (defun nb/markdown-unhighlight ()
-   "Enable markdown concealling"
-   (interactive)
-   (markdown-toggle-markup-hiding 'toggle)
-   (font-lock-add-keywords nil '((nb/unhide-current-line)) t)
-   (add-hook 'post-command-hook #'nb/refontify-on-linemove nil t))
+ ("c" "CPTS Module" plain
+  (file "~/.config/orgTemplates/CPTSSection.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
 
-;; Toggles on for all MD docs. Remove to turn off.
- (add-hook 'markdown-mode-hook #'nb/markdown-unhighlight)
+ ("d" "Daily Review" plain
+  (file "~/.config/orgTemplates/DailyReview.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
 
-;; Enable code block syntax highlight
- (setq markdown-enable-highlighting-syntax t)
+  ("p" "Pentest" plain
+  (file "~/.config/orgTemplates/Pentest.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
 
-;; Enable wiki links in all md files by default:
- (setq markdown-enable-wiki-links t)
 
-; Make emacs auto indent when we create a new list item.
-(setq markdown-indent-on-enter 'indent-and-new-item)
+ ("n" "Start Project" plain
+  (file "~/.config/orgTemplates/ProjectStartTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+ ("N" "End Project" plain
+  (file "~/.config/orgTemplates/ProjectEndTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+  ("s" "Service" plain
+  (file "~/.config/orgTemplates/ServiceTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+ ("t" "Tool" plain
+  (file "~/.config/orgTemplates/ToolTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)))
+
+(defun vr/org-roam-buffer-render-contents-advice (orig-fun &rest args)
+  (let ((org-startup-indented nil))
+    (apply orig-fun args)))
+(advice-add 'org-roam-buffer-render-contents :around #'vr/org-roam-buffer-render-contents-advice)
+
+(use-package ox-hugo
+  :after org
+  :config
+  (setq org-hugo-base-dir "~/Dropbox/40-49_Career/44-Blog/bloodstiller")
+
+  (defun my/ensure-hugo-title (file)
+    "Ensure the file has a #+title: keyword, adding one based on the filename if missing."
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (unless (re-search-forward "^#\\+title:" nil t)
+        (goto-char (point-min))
+        (insert (format "#+title: %s\n\n"
+                        (file-name-base (file-name-nondirectory file))))
+        (save-buffer))
+      (current-buffer)))
+
+  (defun my/get-hugo-section (file)
+    "Get the Hugo section for the file based on its front matter."
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (if (re-search-forward "^#\\+hugo_section:\\s-*\\(.*\\)$" nil t)
+          (match-string-no-properties 1)
+        "posts")))  ; default to "posts" if no specific section is found
+
+  (defun my/org-roam-link-to-hugo-link (link desc)
+    "Convert an Org-roam link to a Hugo internal link or plain text if file is missing."
+    (let* ((id (org-element-property :path link))
+           (node (org-roam-node-from-id id))
+           (file (when node (org-roam-node-file node)))
+           (title (or desc (when node (org-roam-node-title node)) "Unknown")))
+      (if (and file (file-exists-p file))
+          (format "{{< ref \"%s\" >}}" (file-name-sans-extension (file-name-nondirectory file)))
+        (format "*%s*" title))))  ; Use italic text for missing links
+
+  (defun my/export-org-to-hugo (file)
+    "Export a single org file to Hugo markdown."
+    (with-current-buffer (my/ensure-hugo-title file)
+      (message "Exporting %s" file)
+      (condition-case err
+          (let* ((org-export-with-broken-links t)
+                 (section (my/get-hugo-section file))
+                 (org-hugo-section section)
+                 (org-export-before-parsing-hook '(org-roam-bibtex-replace-links
+                                                   org-roam-replace-roam-links))
+                 (org-hugo-link-org-files-as-md t)
+                 (org-link-parameters '(("id" :export my/org-roam-link-to-hugo-link))))
+            (org-hugo-export-wim-to-md)
+            (message "Exported %s to section: %s" file section))
+        (error
+         (message "Error exporting %s: %s" file (error-message-string err))))
+      (kill-buffer)))
+
+  (defun my/export-all-org-files ()
+    "Export all org files in content-org/ to Hugo markdown."
+    (interactive)
+    (let ((org-files (directory-files-recursively
+                      (expand-file-name "content-org" org-hugo-base-dir)
+                      "\\.org$")))
+      (dolist (file org-files)
+        (my/export-org-to-hugo file))))
+
+  (defun my/maybe-export-all-on-save ()
+    (when (and (buffer-file-name)
+               (string-prefix-p
+                (expand-file-name "content-org" org-hugo-base-dir)
+                (buffer-file-name)))
+      (message "File in content-org saved, exporting all files...")
+      (my/export-all-org-files)
+      (message "All files exported")))
+
+  (add-hook 'after-save-hook #'my/maybe-export-all-on-save))
+
+;; Directory local variables for content-org/
+(dir-locals-set-class-variables
+ 'hugo-content-org
+ '((org-mode . ((eval . (org-hugo-auto-export-mode))))))
+
+(dir-locals-set-directory-class
+ (expand-file-name "content-org" org-hugo-base-dir)
+ 'hugo-content-org)
+
+(message "ox-hugo configuration loaded")
 
 ;Back to a simpler time…
 (map! :g "C-s" #'save-buffer)
 
 ; Search easily
 (map! :after evil :gnvi "C-f" #'consult-line)
+
+;;(setq display-line-numbers-type nil)
 
 ;Use VIM Keybindings to move between windows:
 (define-key evil-motion-state-map (kbd "C-h") #'evil-window-left)

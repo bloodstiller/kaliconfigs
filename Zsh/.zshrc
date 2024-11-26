@@ -11,7 +11,6 @@ plugins=(git
   fast-syntax-highlighting
   zsh-autocomplete
 )
-source ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 
 source $ZSH/oh-my-zsh.sh
@@ -181,11 +180,20 @@ alias urlencode='python3 -c "import sys, urllib.parse as ul; \
     print (ul.quote_plus(sys.argv[1]))"'
 
 # Aliases for quick access to specific directories
-alias cpts='~/Dropbox/40-49_Career/41-Courses/41.22-CPTS'   # Access CPTS course folder
-alias bx='~/Dropbox/40-49_Career/46-Boxes/46.02-HTB/Access'  # Access HTB Box folder
+# Access CPTS course folder
+alias cpts='~/Dropbox/40-49_Career/41-Courses/41.22-CPTS'   
+
+# Set HTB base folder
+alias bx='~/Dropbox/40-49_Career/44-Blog/bloodstiller/content-org/Walkthroughs/HTB/BlogEntriesMade/Sauna'  
 
 # Export the IP address of a target box
-export box="10.129.199.196"
+export box="10.129.118.79"
+
+# Export Machine name for target:
+export machine="SUANA"
+
+# Domain
+export domain="EGOTISTICAL-BANK.LOCAL"
 
 # Aliases for quick access to tools directories
 alias wt='~/windowsTools'
@@ -194,15 +202,17 @@ alias lt='~/linuxTools'
 # Start a Python HTTP server on port 9000
 alias pws='python3 -m http.server 9000'
 
-# Set up a tunneling interfaces using ligolo
-alias lgu1='sudo ip tuntap add user kali mode tun ligolo && sudo ip link set ligolo up'
-alias lgu2='sudo ip tuntap add user kali mode tun ligolo-double && sudo ip link set ligolo-double up'
+# Set up a tunneling interface using ligolo
+alias lgu='sudo ip tuntap add user kali mode tun ligolo && sudo ip link set ligolo up'
 
 # Alias for quick access to the folder of the current exam
 alias cl="~/Dropbox/40-49_Career/41-Courses/41.22-CPTS/Exam/Org"
 
 # Add local bin directory to the system PATH
 export PATH=$PATH:/home/kali/.local/bin
+
+# Export IP address for target environment
+export IP="10.129.187.147"
 
 # Launch Bloodhound
 alias bh='docker compose -f ~/.dotfiles/bloodhound/docker-compose.yml up && echo "bh starting"'
@@ -269,4 +279,6 @@ update_var() {
         }
 
 
+
 eval "$(starship init zsh)"
+eval "$(register-python-argcomplete pip)"
