@@ -17,13 +17,13 @@ Vagrant.configure("2") do |config|
     config.ssh.forward_x11 = true
 
     # Mount folders & files: 
-    config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
     config.vm.synced_folder "../bloodhound", "/home/vagrant/bloodhound", type: "virtualbox", owner: "vagrant", group: "vagrant"
     config.vm.synced_folder "../Tmuxinator", "/home/vagrant/.config/tmuxinator", type: "virtualbox", owner: "vagrant", group: "vagrant"
     config.vm.synced_folder "../Tmux", "/home/vagrant/.config/tmux", type: "virtualbox", owner: "vagrant", group: "vagrant"
     config.vm.synced_folder "../Zsh", "/tmp/zsh", type: "virtualbox", owner: "vagrant", group: "vagrant"
     # Add Dropbox synced folders
-    config.vm.synced_folder "~/Dropbox/40", "/tmp/zsh", type: "virtualbox", owner: "vagrant", group: "vagrant"
+    config.vm.synced_folder "~/Dropbox/40-49_Career/45-KaliShared/45.02-LinuxTools", "/home/vagrant/linuxTools", type: "virtualbox", owner: "vagrant", group: "vagrant"
+    config.vm.synced_folder "~/Dropbox/40-49_Career/45-KaliShared/45.01-WindowsTools", "/home/vagrant/windowsTools", type: "virtualbox", owner: "vagrant", group: "vagrant"
     
     # Provision the machine with a shell script
     config.vm.provision "shell", inline: <<-EOF
@@ -33,8 +33,8 @@ Vagrant.configure("2") do |config|
 
       sudo apt update
       sudo apt upgrade -y
-      sudo apt install -y bat
-      sudo apt install eza
+      #sudo apt install -y bat
+      #sudo apt install eza
       # transfer all install programs from kali_setup.sh to here
 
       #gem install tmuxinator
