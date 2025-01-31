@@ -1,0 +1,822 @@
+#+title: New PenTest
+#+AUTHOR: MDB Dev
+#+DESCRIPTION: New Pentest Template
+#+auto_tangle: t
+#+STARTUP: showeverything
+
+* TOC :TOC:
+:PROPERTIES:
+:ID:       c53b6a80-1d48-407d-87fe-fcd64dea2bb8
+:END:
+
+
+- [[#activity-log-information][Activity Log Information:]]
+- [[#admin][Admin:]]
+  - [[#1-scoping-information][1. Scoping Information:]]
+  - [[#2-client-contact-information][2. Client-Contact-Information:]]
+  - [[#3-administrative-information][3. Administrative Information:]]
+- [[#deliverables][Deliverables:]]
+- [[#data][Data:]]
+- [[#evidence][Evidence:]]
+  - [[#findings][Findings:]]
+  - [[#logging-output][Logging Output:]]
+  - [[#osint][OSINT:]]
+  - [[#scans][Scans:]]
+  - [[#service][Service:]]
+  - [[#vuln][Vuln:]]
+  - [[#web][Web:]]
+  - [[#wireless][Wireless:]]
+  - [[#misc-files][Misc Files:]]
+- [[#notes][Notes:]]
+  - [[#0-kill-chain][0. KILL-CHAIN:]]
+  - [[#3-payload-log][3. Payload-Log:]]
+  - [[#4-osint-data][4. OSINT-Data:]]
+  - [[#6-credentials][6. Credentials:]]
+  - [[#6-web-application-research][6. Web-Application-Research:]]
+  - [[#7-vulnerability-scan-research][7. Vulnerability Scan Research:]]
+  - [[#8-service-enumeration-research][8. Service Enumeration Research:]]
+  - [[#9-ad-enumeration-research][9. AD-Enumeration-Research:]]
+  - [[#10-findings][10. Findings:]]
+  - [[#11-network-information][11. Network Information:]]
+- [[#todolist-03][+TODOLIST+:]]
+  - [[#todo-a][TODO A]]
+  - [[#todo-b][TODO B]]
+  - [[#todo-c][TODO C]]
+- [[#checklists][Checklists:]]
+- [[#retest][Retest:]]
+- [[#script-to-create-directories--keep-the-whole-structure-in-sync][Script to Create Directories & Keep the whole structure in sync:]]
+
+* Activity Log Information:
+:PROPERTIES:
+:header-args: :tangle Notes/3.Activity-Log.md
+:ID:       2d64ee0b-02f5-4098-8f12-1b0ecf3cb81d
+:END:
+
+#+begin_src org
+| Action                         | Start Time | End Time  | Date       | Notes                                    |
+| ------------------------------ | ---------- | --------- | ---------- | -----------------------------------------|
+|<PlaceHolder>                   |<time>      |<time>     |<notes>     |                                          |
+| Test                           |            |           |            |                                          |
+#+end_src
+
+* Admin:
+:PROPERTIES:
+:ID:       c3c86b58-b252-4318-abad-c0d4644fea02
+:END:
+
+
+** 1. Scoping Information:
+:PROPERTIES:
+:header-args: :tangle Admin/Scoping-Information.md :mkdirp yes :perms
+:ID:       45c98a1e-c442-4a29-b113-ac03f543c896
+:END:
+
+#+begin_src org
+- Network range: 
+- Domain (AD): 
+- Domain (Web):
+#+end_src
+
+** 2. Client-Contact-Information:
+:PROPERTIES:
+:header-args: :tangle Admin/Client-Contact-Information.md :mkdirp yes :perms
+:ID:       94a13ccf-ae0e-46cf-a81e-8950b41edcbf
+:END:
+
+#+begin_src org
+- *Role*:
+  - Name:
+  - Contact Information:
+
+- *Role*:
+  - Name:
+  - Contact Information:
+
+- *Role*:
+  - Name:
+  - Contact Information:
+
+#+end_src
+
+** 3. Administrative Information:
+:PROPERTIES:
+:header-args: :tangle Admin/Administrative-Information.md :mkdirp yes :perms
+:ID:       9740c382-1a7a-4a88-b042-ea7375b7471a
+:END:
+
+#+begin_src org
+#+end_src
+
+
+
+* Deliverables:
+:PROPERTIES:
+:header-args: :tangle Deliverables/Deliverables.md
+:ID:       2bae0105-6000-419c-bea1-7dd487e05554
+:END:
+#+begin_src org
+
+#+end_src
+* Data:
+:PROPERTIES:
+:header-args: :tangle Data/Data.md
+:ID:       0d23a168-37e6-40c7-8f3a-d0acc3c3113b
+:END:
+ - For any script exports e.g. dumping NTDS.
+* Evidence:
+:PROPERTIES:
+:ID:       0a8d31f1-e153-4c18-a4b7-4b0794e392a4
+:END:
+
+** Findings:
+:PROPERTIES:
+:header-args: :tangle Evidence/Findings/Findings.md
+:ID:       c2a58c45-08ac-4234-80b8-fe68ceb8a0c8
+:END:
+
+*** ASEPRoasting:
+:PROPERTIES:
+:ID:       cf2358a3-9e67-44c8-9409-f4b0771d4c5e
+:END:
+
+*** Kerberoasting:
+:PROPERTIES:
+:ID:       4a8c403d-8267-4db7-ac8d-87c85d6d6c09
+:END:
+
+*** LLMNR&NBT-NS Response:
+:PROPERTIES:
+:ID:       cb48be64-9553-4b7b-9dc7-5f2183df377b
+:END:
+
+*** Local Admin Password Reuse:
+:PROPERTIES:
+:ID:       d411df10-2864-49eb-b779-9f6466f9fcb2
+:END:
+
+*** Password Re-use:
+:PROPERTIES:
+:ID:       f9dab555-1e8b-400e-b77e-3cce31733fe1
+:END:
+
+*** Weak Admininstrator Credentials: 
+:PROPERTIES:
+:ID:       a094cfaa-50a5-4c58-afa3-753b4b7af4f3
+:END:
+
+*** Weak Service Credentials: 
+:PROPERTIES:
+:ID:       30416162-c8ce-428f-874e-91289518083d
+:END:
+
+*** Default Credentials: 
+:PROPERTIES:
+:ID:       62829523-314b-4992-bf7f-38b53a074ee9
+:END:
+
+*** Service Accounts Part of Domain Admin Group: 
+:PROPERTIES:
+:ID:       99bae412-1da8-406c-a296-fc58dcf68623
+:END:
+
+*** Local File Inclusion:
+:PROPERTIES:
+:ID:       dcf373e4-9c04-40b4-b02d-8a204d4c6248
+:END:
+
+*** Command Injection:
+:PROPERTIES:
+:ID:       88d70f7c-5252-4958-a7fc-9001fb2d1716
+:END:
+** Logging Output:
+:PROPERTIES:
+:ID:       ee0a0927-120a-4aa8-b3b8-c664297102f6
+:END:
+*** Tmux:
+:PROPERTIES:
+:header-args: :tangle Evidence/Logging-Output/tmux-Logging.md :mkdirp yes :perms
+:ID:       a883bd8e-3742-45df-8db1-83cdff846792
+:END:
+#+begin_src org
+
+#+end_src
+
+*** mimikatz:
+:PROPERTIES:
+:header-args: :tangle Evidence/Logging-Output/mimikatz.md :mkdirp yes :perms
+:ID:       0524ef67-11c1-4c1f-bdbc-68816e3d667a
+:END:
+#+begin_src org
+
+#+end_src
+** OSINT:
+:PROPERTIES:
+:header-args: :tangle Evidence/OSINT/OSINT.md
+:ID:       5ab66614-a460-4ee2-a44d-a28458fe6851
+:END:
+#+begin_src org 
+
+#+end_src
+** Scans:
+:PROPERTIES:
+:ID:       3ec14480-9aa7-4e3a-af09-7265d482a038
+:END:
+*** NMAP:
+:PROPERTIES:
+:ID:       67c66a43-01e4-499a-83e1-8d4e90957c7d
+:END:
+**** Basic NMAP scan:
+:PROPERTIES:
+:header-args: :tangle Evidence/Scans/nmapBasicTCP.md :mkdirp yes :perms
+:ID:       001d78d5-9e06-49ee-b7f5-552149efbdc3
+:END:
+- This is just to get a lay of the land and see up hosts.
+- We can extract the information from this for our
+__________________________________________________________
+- [ ] *Basic Scan*:
+  - sudo nmap -sV -oA initialScan -iL scope_list
+
+- *Scan Results*:
+    #+BEGIN_SRC org
+    ## NMAP Basic Scan 
+    - Command run `sudo nmap -sV -oA initialScan -iL scope_list`
+
+      ```
+
+      ```
+    #+END_SRC
+***** Common Ports Scan [0/0]:
+:PROPERTIES:
+:ID:       e59c5c21-be97-4c50-80c5-a24ba7100baa
+:END:
+- *If testing web applications try*:
+  - [ ] Common Web App Scan:
+    - sudo nmap -sV -p 80,443,8000,8080,8180,8888,10000 -oA webDiscovery -iL scopelist
+
+    #+BEGIN_SRC org
+    ## NMAP Common Web Ports  Scan 
+    - Command run `sudo nmap -sV -p 80,443,8000,8080,8180,8888,10000 -oA webDiscovery -iL scopelist`
+
+      ```
+
+      ```
+    #+END_SRC
+  - [ ] Other targets try:
+    - [ ] [[Indepth Scans:]]
+  - *Scan Results*:
+    #+BEGIN_SRC bash
+
+    #+END_SRC
+**** Indepth NMAP Scans:
+:PROPERTIES:
+:ID:       474ff1a6-7fc7-440e-9de4-91befae363a4
+:END:
+- Depending on size of scope run either:
+***** NMAP Top 10,000 ports TCP:
+:PROPERTIES:
+:header-args: :tangle Evidence/Scans/nmapTop10000TCP.md :mkdirp yes :perms
+:ID:       79c96d4c-2674-41e6-81ed-2119939462d8
+:END:
+
+- sudo nmap --top-ports=10000 -sV -oA 10kPortsTCP -iL scopeList
+    #+BEGIN_SRC org
+    ## NMAP Top 10,000 Ports TCP Scan 
+    - Command run `sudo nmap --top-ports=10000 -sV -oA 10kPortsTCP -iL scopeList`
+
+      ```
+
+      ```
+    #+END_SRC
+
+***** NMAP Top 10,000 ports UDP:
+:PROPERTIES:
+:header-args: :tangle Evidence/Scans/nmapTop10000UDP.md :mkdirp yes :perms
+:ID:       8f5edae2-6622-4948-9001-23a17223cf4e
+:END:
+
+- sudo nmap --top-ports=10000 -sU -sV -oA 10kPortsUDP -iL scopeList
+    #+BEGIN_SRC org
+    ## NMAP Top 10,000 Ports TCP Scan 
+    - Command run `sudo nmap --top-ports=10000 -sV -sU -oA 10kPortsUDP -iL scopeList`
+
+      ```
+
+      ```
+    #+END_SRC
+***** Full TCP port scan:
+:PROPERTIES:
+:header-args: :tangle Evidence/Scans/nmapFullTCP.md :mkdirp yes :perms
+:ID:       135b4211-85b4-46c7-892d-39adb681fde4
+:END:
+- sudo nmap -p- -sV -A -oA FullTCP -iL scopeList
+#+BEGIN_SRC org
+#+END_SRC
+***** Full UDP port scan:
+:PROPERTIES:
+:header-args: :tangle Evidence/Scans/nmapFullUDP.md :mkdirp yes :perms
+:ID:       795e96c4-3762-425c-8e54-7cae5638b35f
+:END:
+- sudo nmap -p- -sV -A -oA FullTCP -iL scopeList
+#+BEGIN_SRC org
+#+END_SRC
+*** Aquatone/Eyewitness Scans (Web): [0/2]
+:PROPERTIES:
+:ID:       f683327c-a298-4414-88ee-d8f62eecdd81
+:END:
+- Run these off the basis of the common ports scan (ingest):
+  - When reviewing the results of the below run [[Indepth Scans:]]
+________________________________________________________
+- [ ] [[id:7655547e-716a-47a5-8aed-03d6b6452797][Eyewitness]] Scan:
+  - [ ] eyewitness --web -x <nmap>.xml -d <directoryNameForResults>
+  - /Remember to read the entire report!!!/ There are often very important discoveries burried deep in the report!
+    - Just because it will show High Value Targets at the start doesn't mean these are our best route!
+- [ ] [[id:5953d611-4d68-4df5-82e9-20aa32df99f7][Aquatone]] Scan:
+  - [ ]  cat <nmap>.xml | ./aquatone -nmap
+
+*** Masscan/Nessus Scans [0/3]:
+:PROPERTIES:
+:ID:       dfd82c71-d972-4511-9baa-5a0376e6608d
+:END:
+- Use in non-evassive tests as these are noisy:
+- [ ] *Masscan*:
+- [ ] *Nessus*:
+*** AD Enumeration:
+:PROPERTIES:
+:header-args: :tangle Evidence/Scans/AD Enumeration/AD-Enum.md
+:ID:       62591c81-241f-4eda-ac68-79c79f84ff0e
+:END:
+#+begin_src org
+
+#+end_src
+** Service:
+:PROPERTIES:
+:header-args: :tangle Evidence/Scans/Service/Service.md
+:ID:       5470e74c-6c73-45aa-be7b-6cd319b2a62f
+:END:
+#+begin_src org
+
+#+end_src
+** Vuln:
+:PROPERTIES:
+:header-args: :tangle Evidence/Scans/Vuln/Vuln.md
+:ID:       0119397a-454f-407c-a33f-beae2718214c
+:END:
+#+begin_src org
+
+#+end_src
+** Web:
+:PROPERTIES:
+:header-args: :tangle Evidence/Scans/Web/Web.md
+:ID:       81444b16-0ed4-4092-9ef7-bb4c04e3540c
+:END:
+#+begin_src org
+#+end_src
+** Wireless:
+:PROPERTIES:
+:header-args: :tangle Evidence/Wireless/Wireless.md
+:ID:       fa8a1b49-058a-4bab-8e03-62f0b3fa41ff
+:END:
+#+begin_src org
+
+#+end_src
+** Misc Files:
+:PROPERTIES:
+:ID:       ada0c987-1820-44f9-b7cd-b07413712080
+:END:
+#+begin_src org
+
+
+#+end_src
+* Notes:
+:PROPERTIES:
+:ID:       ecba0693-ad81-47c9-bc6a-689a68458321
+:END:
+- Numbering is right, activity log exports to here as number 2, but is above for conviencnec. 
+** 0. KILL-CHAIN:
+:PROPERTIES:
+:header-args: :tangle Notes/0.Kill-Chain.md
+:ID:       d98bc242-3554-4bc4-b956-691af0fd85a3
+:END:
+#+begin_src org
+# Kill Chain
+1. Foothold:
+2. Privesc:
+3. Ownership:
+4. Persistence:
+#+end_src
+
+
+** 3. Payload-Log:
+:PROPERTIES:
+:header-args: :tangle Notes/4.Payload-Log.md
+:ID:       f09bff00-6b43-4166-83c9-f899f58a20a6
+:END:
+
+#+begin_src org
+| Target Host                    | File-Name  | File MD5SUM   | Date   | Time  | Notes                           |
+|--------------------------------|------------|---------------|--------|-------|---------------------------------|
+|<PlaceHolder>                   |<time>      |<time>         |<notes> |       |                                 |
+#+end_src
+
+** 4. OSINT-Data:
+:PROPERTIES:
+:header-args: :tangle Notes/5.OSINT-Data.md
+:ID:       8e4648fb-15a7-43f2-9c51-03ef81252aba
+:END:
+#+begin_src org
+
+#+end_src
+
+** 6. Credentials:
+:PROPERTIES:
+:header-args: :tangle Notes/6.Credentials.md
+:ID:       eeaa0265-2c95-44e3-b578-d0d9d83fa941
+:END:
+
+*** User:
+:PROPERTIES:
+:ID:       b529ed56-dc74-4e25-94c1-43f3182f993d
+:END:
+#+begin_src org
+# Credentials
+
+## User Credentials:
+
+1. *User Cred*:
+   + *Username*:
+   + _Password_:
+   + *Hash*:
+   + _Can be used on services_:
+     1.
+   + _Discovered By_:
+
+2. *User Cred*:
+   + *Username*:
+   + _Password_:
+   + *Hash*:
+   + _Can be used on services_:
+     1.
+   + _Discovered By_:
+
+3. *User Cred*:
+   + *Username*:
+   + _Password_:
+   + *Hash*:
+   + _Can be used on services_:
+     1.
+   + _Discovered By_:
+#+end_src
+
+*** Service Credentials:
+:PROPERTIES:
+:ID:       a998683d-85e9-4cf9-bc40-69093f70f764
+:END:
+#+begin_src org
+
+## Service Credentials:
+
+1. *Service Cred*:
+   + *Username*:
+   + _Password_:
+   + *Hash*:
+   + _Can be used on services_:
+     1.
+   + _Discovered By_:
+
+2. *Service Cred*:
+   + *Username*:
+   + _Password_:
+   + *Hash*:
+   + _Can be used on services_:
+     1.
+   + _Discovered By_:
+
+3. *Service Cred*:
+   + *Username*:
+   + _Password_:
+   + *Hash*:
+   + _Can be used on services_:
+     1.
+   + _Discovered By_:
+
+#+end_src
+
+*** SSH Keys:
+:PROPERTIES:
+:ID:       9d6ebb4e-7e27-4a66-8f2d-17110b3549a5
+:END:
+#+begin_src org
+## SSH-Keys
+`test key`
+
+#+end_src
+*** Hashes:
+:PROPERTIES:
+:ID:       155a4959-d1cb-4da2-bfc8-14d3ee2b7ed1
+:END:
+**** AsRep:
+:PROPERTIES:
+:ID:       478fa257-7e6e-4c1d-8db7-ad139405f815
+:END:
+#+begin_src org
+## AsRep Hashes
+
+#+end_src
+**** Kerb:
+:PROPERTIES:
+:ID:       2ca30b95-055a-40de-8abe-0755b38bdb42
+:END:
+#+begin_src org
+## Kerb Hashes
+
+#+end_src
+
+**** LLMNR:
+:PROPERTIES:
+:ID:       4e404af0-cacb-47dc-809b-0ecdea4799c9
+:END:
+#+begin_src org
+## LLMNR Hashes
+
+#+end_src
+**** IPMI:
+:PROPERTIES:
+:ID:       96d93c73-8c72-478a-88e3-70631cf5d3b1
+:END:
+#+begin_src org
+## IPMI Hashes
+
+#+end_src
+
+** 6. Web-Application-Research:
+:PROPERTIES:
+:header-args: :tangle Notes/7.Web-application-Research.md
+:ID:       efdb766f-e73b-4d2d-aa46-1ebbf9a404e0
+:END:
+
+#+begin_src org
+
+#+end_src
+
+** 7. Vulnerability Scan Research:
+:PROPERTIES:
+:header-args: :tangle Notes/8.Vulnerability-Scan-Research.md
+:ID:       2d080297-b5fb-4172-956a-7fbcdeab04f2
+:END:
+
+#+begin_src org
+
+#+end_src
+
+** 8. Service Enumeration Research:
+:PROPERTIES:
+:header-args: :tangle Notes/9.Service-Enumeration-Research.md
+:ID:       5e06d086-b8f2-4874-988f-3474a2cdfe9c
+:END:
+
+#+begin_src org
+
+#+end_src
+
+** 9. AD-Enumeration-Research:
+:PROPERTIES:
+:header-args: :tangle Notes/10.AD-Enumeration-Research.md
+:ID:       f9f17e61-3dcd-48cc-8639-cdcd2755f237
+:END:
+
+#+begin_src org
+
+#+end_src
+
+
+** 10. Findings:
+:PROPERTIES:
+:ID:       c2c4c42b-505e-48e3-aa75-95e4f30b68e3
+:END:
+
+:PROPERTIES:
+:header-args: :tangle Notes/12.Findings.md
+:END:
+
+- Must be written up into proper findings afterwards. 
+- This is purely for my reference. 
+
+*** Finding 1 :
+:PROPERTIES:
+:ID:       2eff32bf-9aa2-4fe1-ba37-c9e0f0910ca5
+:END:
+#+begin_src org
+
+# Finding 1. 
+| Finding            | Level           | 
+|--------------------|-----------------|
+|<PlaceHolder>       | <High/Low/Info> |
+#+end_src
+
+- Tool output to accompany
+#+begin_src org
+
+
+#+end_src
+
+*** Finding 2 :
+:PROPERTIES:
+:ID:       7df453f7-f264-49b5-9071-32e6c4c78a80
+:END:
+#+begin_src org
+
+# Finding 1. 
+| Finding            | Level           | 
+|--------------------|-----------------|
+|<PlaceHolder>       | <High/Low/Info> |
+#+end_src
+
+- Tool output to accompany
+#+begin_src org
+
+
+#+end_src
+
+** 11. Network Information:
+:PROPERTIES:
+:header-args: :tangle Notes/13.Network-Information.md
+:ID:       cd1286ec-0ddd-47aa-a3e3-80308eba82e2
+:END:
+*** Interesting Hosts:
+:PROPERTIES:
+:ID:       6379f7ba-d530-4c89-9c07-9b389aab21be
+:END:
+#+begin_src org
++ *IP/URL/Hostname*:
+  - Service/App Running:
+    - Version:
++ *IP/URL/Hostname*:
+  - Service/App Running:
+    - Version:
++ *IP/URL/Hostname*:
+  - Service/App Running:
+    - Version:
++ *IP/URL/Hostname*:
+  - Service/App Running:
+    - Version:
+#+end_src
+*** Available Networks/NICS:
+:PROPERTIES:
+:ID:       bc33d475-6878-404c-a7bc-b458542ad781
+:END:
+#+begin_src org
++ *Hosts*:
+  + _Host 1_:
+    - Hostname:
+    - IP:
+    - NIC 1:
+    - NIC 2:
+    - Netstat -r output:
+    - Reachable hosts:
+
+  + _Host 2_:
+    - Hostname:
+    - IP:
+    - NIC 1:
+    - NIC 2:
+    - Netstat -r output:
+    - Reachable hosts:
+
+  + _Host 3_:
+    - Hostname:
+    - IP:
+    - NIC 1:
+    - NIC 2:
+    - Netstat -r output:
+    - Reachable hosts:
+#+end_src
+
++ *Ping Sweep Results*:
+  - [[id:0c67fab1-55d7-48e3-9baf-321bbfbc9c15][ping sweep & port scanning]]
+  - /NOTE/: It is possible that a ping sweep may not result in successful replies on the first attempt,
+   especially when communicating across networks. This can be caused by the time it takes for a host to build it's arp cache.
+   In these cases, it is good to attempt our ping sweep at least twice to ensure the arp cache gets built.
+
+*** Network Topology Diagram:
+:PROPERTIES:
+:ID:       87f3265a-25ad-40cf-a9a0-05a16f6e34c5
+:END:
+
+#+begin_src org
+## Network Topology
+```
+            +-------------------------------------------------------+
+            |                   Network Topology                    |
+            +-------------------------------------------------------+
+
+ +----------------+       +----------------+       +----------------+
+ |   AttackHost   |       |   PivotHost    |       |  TargetHost    |
+ |----------------|       |----------------|       |----------------|
+ | NIC1: [______] |-------| NIC1: [______] |-------| NIC1: [______] |
+ | NIC2: [______] |       | NIC2: [______] |       | NIC2: [______] |
+ | Machine: [___] |       | Machine: [___] |       | Machine: [___] |
+ +----------------+       +----------------+       +----------------+
+```
+
+Notes:
+1. "-------" represents a direct connection.
+2. "[______]" placeholders are for you to enter IP ranges.
+3. "Machine: [___]" placeholders are for you to enter actual machine names.
+#+end_src
+* +TODOLIST+: [0/3]
+:PROPERTIES:
+:ID:       7a070635-ea58-4380-b9cc-14a9205cbb36
+:END:
+** TODO TODO A
+:PROPERTIES:
+:ID:       dd153cf2-1a4e-40d7-a2e8-15ec4ac606c2
+:END:
+** TODO TODO B
+:PROPERTIES:
+:ID:       4e467ca1-1019-4be5-b543-9bd23aa81b05
+:END:
+** TODO TODO C
+:PROPERTIES:
+:ID:       00e88419-0bd3-464a-aee9-5bda1f8ce24d
+:END:
+
+* Checklists:
+:PROPERTIES:
+:ID:       d18055e2-750a-46e2-b295-f7394a29332a
+:END:
+ - Pentetsting Methodology: 
+   - https://book.hacktricks.xyz/generic-methodologies-and-resources/pentesting-methodology
+ - Extenernal Recon Methodology: 
+   - https://book.hacktricks.xyz/generic-methodologies-and-resources/external-recon-methodology
+ - Linux Privesc Methodology: 
+   - https://book.hacktricks.xyz/linux-hardening/linux-privilege-escalation-checklist
+ - Windows Privesc Methodology: 
+   - https://book.hacktricks.xyz/windows-hardening/checklist-windows-privilege-escalation
+ - Web Vulns Testing Methodology: 
+   - https://book.hacktricks.xyz/pentesting-web/web-vulnerabilities-methodology
+* Retest:
+:PROPERTIES:
+:header-args: :tangle Retest/retest.md
+:ID:       833a0bd7-6a46-4ccb-9fca-a3d19e7291ef
+:END:
+#+begin_src org
+#+end_src
+
+
+* Script to Create Directories & Keep the whole structure in sync:
+:PROPERTIES:
+:header-args: :tangle indexSync.sh :shebang #!/bin/bash :mkdirp yes :perms (identity #o755) :post (shell-command "./indexSync.sh")
+:ID:       14209c3b-d476-4765-bef5-4cec9aa26a57
+:END:
+- The file auto updates the ~index.md~ file that is at the root of this structure.
+  - +Note+: This has to be at the very end of the script as tangling happens sequentially, so this will not re-index new files if it is executed before the files are tangled & created.
+
+#+begin_src bash
+
+# Determine the directory where the script is located
+script_dir="$(dirname "$(realpath "$0")")"
+
+# Function to update the index file with tree-like structure
+update_index() {
+    # Create or replace the content of Index.md with the heading
+    echo "# Index of Markdown Files" > "$script_dir/Index.md"
+
+    # Function to generate the index with proper indentation
+    generate_tree() {
+        local directory="$1"
+        local prefix="$2"
+        
+        # Find all markdown files in the current directory
+        find "$directory" -maxdepth 1 -type f -name "*.md" ! -name "Index.md" | sort | while read md_file; do
+            # Generate a relative path by removing the base directory and the .md extension
+            rel_path="${md_file#$script_dir/}"
+            # Extract the file name without extension
+            file_name="${rel_path%.md}"
+            # Print the link with indentation
+            echo "${prefix}- [[${file_name}]]" >> "$script_dir/Index.md"
+        done
+
+        # Recursively process subdirectories
+        find "$directory" -mindepth 1 -maxdepth 1 -type d | sort | while read subdir; do
+            # Extract the subdirectory name
+            sub_name="${subdir#$directory/}"
+            # Add the subdirectory name with proper indentation
+            echo "${prefix}- ${sub_name}/" >> "$script_dir/Index.md"
+            # Call the function recursively for subdirectories with increased indentation
+            generate_tree "$subdir" "    ${prefix}"
+        done
+    }
+
+    # Start generating the tree from the root directory
+    generate_tree "$script_dir" ""
+}
+
+# Call the update_index function
+update_index
+
+# Print a confirmation message
+echo "Index.md has been updated in $script_dir."
+
+#+end_src
+
+

@@ -1,0 +1,148 @@
+---
+- name: Configure Kali Linux
+  hosts: all
+  become: yes  # This is equivalent to using sudo
+  vars:
+    user_home: "/home/vagrant"
+    docker_gpg_key_url: "https://download.docker.com/linux/debian/gpg"
+    docker_repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install base packages
+      apt:
+        name:
+          - emacs
+          - eza
+          - alacritty
+          - git
+          - bat
+          - seclists
+        state: present
+
+    - name: Create docker GPG directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Add Docker GPG key
+      shell: |
+        curl -fsSL {{ docker_gpg_key_url }} | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+    - name: Add Docker repository
+      copy:
+        content: "{{ docker_repo }}"
+        dest: /etc/apt/sources.list.d/docker.list
+
+    - name: Install Docker packages
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        update_cache: yes
+        state: present
+
+    - name: Install Starship
+      shell: curl -sS https://starship.rs/install.sh | sh
+      args:
+        creates: /usr/local/bin/starship
+
+    - name: Install oh-my-zsh
+      become_user: vagrant
+      shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      args:
+        creates: "{{ user_home }}/.oh-my-zsh"
+
+    - name: Install zsh plugins
+      become_user: vagrant
+      git:
+        repo: "{{ item.repo }}"
+        dest: "{{ user_home }}/.oh-my-zsh/custom/plugins/{{ item.name }}"
+      loop:
+        - { repo: 'https://github.com/zsh-users/zsh-autosuggestions', name: 'zsh-autosuggestions' }
+        - { repo: 'https://github.com/zsh-users/zsh-syntax-highlighting.git', name: 'zsh-syntax-highlighting' }
+        - { repo: 'https://github.com/marlonrichert/zsh-autocomplete.git', name: 'zsh-autocomplete' }
+        - { repo: 'https://github.com/zdharma-continuum/fast-syntax-highlighting.git', name: 'fast-syntax-highlighting' }
+
+    - name: Install tmuxinator
+      gem:
+        name: tmuxinator
+        state: present
+
+    - name: Clone Statistically Likely Usernames
+      git:
+        repo: https://github.com/insidetrust/statistically-likely-usernames.git
+        dest: /usr/share/wordlists/statistically-likely-usernames
+
+    - name: Download and install Kerbrute
+      get_url:
+        url: https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_linux_amd64
+        dest: /usr/local/bin/kerbrute
+        mode: '0755'
+
+    - name: Install Doom Emacs
+      become_user: vagrant
+      block:
+        - name: Clone Doom Emacs
+          git:
+            repo: https://github.com/doomemacs/doomemacs
+            dest: "{{ user_home }}/.emacs.d"
+            depth: 1
+        - name: Install Doom Emacs
+          shell: "{{ user_home }}/.emacs.d/bin/doom install --force"
+          args:
+            creates: "{{ user_home }}/.emacs.d/bin/doom"
+
+    - name: Setup dotfiles
+      become_user: vagrant
+      block:
+        - name: Clone dotfiles
+          git:
+            repo: https://github.com/bloodstiller/kaliconfigs.git
+            dest: "{{ user_home }}/.dotfiles"
+
+        - name: Create required directories
+          file:
+            path: "{{ item }}"
+            state: directory
+          loop:
+            - "{{ user_home }}/.doom.d"
+            - "{{ user_home }}/.config"
+
+        - name: Create symlinks
+          file:
+            src: "{{ item.src }}"
+            dest: "{{ item.dest }}"
+            state: link
+            force: yes
+          loop:
+            - { src: "{{ user_home }}/.dotfiles/Zsh/.zshrc", dest: "{{ user_home }}/.zshrc" }
+            - { src: "{{ user_home }}/.dotfiles/Doom/config.el", dest: "{{ user_home }}/.doom.d/config.el" }
+            - { src: "{{ user_home }}/.dotfiles/Doom/init.el", dest: "{{ user_home }}/.doom.d/init.el" }
+            - { src: "{{ user_home }}/.dotfiles/Doom/packages.el", dest: "{{ user_home }}/.doom.d/packages.el" }
+            - { src: "{{ user_home }}/.dotfiles/Doom/README.org", dest: "{{ user_home }}/.doom.d/README.org" }
+            - { src: "{{ user_home }}/.dotfiles/Starship/starship.toml", dest: "{{ user_home }}/.config/starship.toml" }
+            - { src: "{{ user_home }}/.dotfiles/Alacritty", dest: "{{ user_home }}/.config/Alacritty" }
+            - { src: "{{ user_home }}/.dotfiles/Tmux/.tmux.conf", dest: "{{ user_home }}/.tmux.conf" }
+
+    - name: Enable Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add user to docker group
+      user:
+        name: vagrant
+        groups: docker
+        append: yes
+
+    - name: Clean up
+      apt:
+        autoremove: yes
+        clean: yes

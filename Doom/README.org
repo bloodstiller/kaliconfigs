@@ -1,0 +1,1111 @@
+#+TITLE: Bloodstiller Dev Doom Config
+#+AUTHOR: blooodstiller
+#+DESCRIPTION: Bloodstiller Personal Doom Emacs Config.
+#+auto_tangle: t
+#+STARTUP: showeverything
+
+* TABLE OF CONTENTS :TOC:
+:PROPERTIES:
+:ID:       b541533f-3271-4bc6-8dcb-bdd0dc44261b
+:END:
+- [[#literate-config][Literate Config:]]
+- [[#doom-main-config][Doom Main Config:]]
+  - [[#general-settings][General Settings:]]
+  - [[#fonts--theme][Fonts & Theme:]]
+  - [[#bookmarks-and-buffers][BOOKMARKS AND BUFFERS]]
+  - [[#org-mode][ORG MODE:]]
+  - [[#quality-of-life][Quality Of Life:]]
+- [[#packagesel][packages.el:]]
+- [[#initel][init.el]]
+- [[#customel][custom.el]]
+
+* Literate Config:
+:PROPERTIES:
+:ID:       98115602-c008-4e0b-8d95-497de1561a6c
+:END:
+- This is my personal Doom Emacs config it is structured as a literate configuration.
+- Inspired by the methodology presented at [[https://leanpub.com/lit-config/read][Literate Configuration]].
+- This approach blends detailed documentation directly with the code, offering clear insights into the purpose and functionality of each configuration snippet, making it both user-friendly and easy to maintain.
+- Great video by DT Tube here on how to write literate configs:
+  - https://www.youtube.com/watch?v=eF4cJlBNtdQ&themeRefresh=1
+- /Alot of this is lifted from DT Tube but with my own customization etc./ However please check out his config and videos https://gitlab.com/dwt1/distro.tube
+
+* Doom Main Config:
+:PROPERTIES:
+:header-args: :tangle config.el
+:ID:       3dcb0204-6a78-4288-a1d2-ccd37bb96118
+:END:
+** General Settings:
+:PROPERTIES:
+:ID:       475d01fc-e548-4302-ad62-afadbba757c5
+:END:
+*** Fo
+:PROPERTIES:
+:ID:       d0270d28-a9f2-4b3c-a1a8-af5189de4c85
+:END:
+*** User Information:
+:PROPERTIES:
+:ID:       c3b95b23-c870-4d56-8c88-d291d86575df
+:END:
+
+#+begin_src emacs-lisp
+
+(setq user-full-name "bloodstiller")
+#+end_src
+
+*** Set line Numbers:
+:PROPERTIES:
+:ID:       ede96043-150a-4324-a75d-2ed8c46e04bc
+:END:
+#+begin_src emacs-lisp
+;; This determines the style of line numbers in effect. If set to `nil', line
+;; numbers are disabled. For relative line numbers, set this to `relative'.
+(setq display-line-numbers-type t)
+#+end_src
+*** Beacon:
+:PROPERTIES:
+:ID:       f863ec51-a739-4f88-a9f3-3f5dee348230
+:END:
+Never lose your cursor.  When you scroll, your cursor will shine!  This is a global minor-mode. Turn it on everywhere with:
+
+#+begin_src emacs-lisp
+(beacon-mode 1)
+#+end_src
+*** Graphics: Pixel-precision scrolling:
+:PROPERTIES:
+:ID:       fe490eed-c742-4470-8446-1ed59cd0677d
+:END:
+#+begin_src emacs-lisp
+(when (version< "29.0.50" emacs-version)
+  (pixel-scroll-precision-mode))
+#+end_src
+** Fonts & Theme:
+:PROPERTIES:
+:ID:       12c9f631-b30d-43ff-b115-5f1601508a8b
+:END:
+Settings related to fonts within Doom Emacs:
+
+  - ‘doom-font’ – standard monospace font that is used for most things in Emacs.
+  - ‘doom-variable-pitch-font’ – variable font which is useful in some Emacs plugins.
+  - ‘doom-big-font’ – used in doom-big-font-mode; useful for presentations.
+  - ‘font-lock-comment-face’ – for comments.
+  - ‘font-lock-keyword-face’ – for keywords with special significance like ‘setq’ in elisp.
+
+#+begin_src emacs-lisp
+(setq doom-theme 'doom-one)
+;;(setq  doom-font (font-spec :family "Iosevka Nerd Font" :size 16)
+(setq  doom-font (font-spec :family "Fira Code Medium" :size 18)
+       doom-variable-pitch-font (font-spec :family "Fira Code Medium")
+       doom-unicode-font (font-spec :family "Fira Code Medium" :size 16))
+#+end_src
+
+** BOOKMARKS AND BUFFERS
+:PROPERTIES:
+:ID:       8c972c30-b66c-497d-9794-961140da8120
+:END:
+Doom Emacs uses 'SPC b' for keybindings related to bookmarks and buffers.
+*** Buffers
+:PROPERTIES:
+:ID:       03d74a33-46d3-475e-afdd-949105202662
+:END:
+Regarding buffers, the text you are editing in Emacs resides in an object called a buffer. Each time you visit a file, a buffer is used to hold the file’s text. Each time you invoke Dired, a buffer is used to hold the directory listing.  Ibuffer is a program that lists all of your Emacs buffers/, allowing you to navigate between them and filter them.
+j
+| COMMAND         | DESCRIPTION          | KEYBINDING |
+|-----------------+----------------------+------------|
+| ibuffer         | _Launch ibuffer_       | SPC b i    |
+| kill-buffer     | _Kill current buffer_  | SPC b k    |
+| next-buffer     | _Goto next buffer_     | SPC b n    |
+| previous-buffer | _Goto previous buffer_ | SPC b p    |
+| save-buffer     | _Save current buffer_  | SPC b s    |
+
+*** Global Auto Revert
+:PROPERTIES:
+:ID:       086137eb-23cb-447a-ac0a-591e17505aaa
+:END:
+A buffer can get out of sync with respect to its visited file on disk if that file is changed by another program. To keep it up to date, you can enable Auto Revert mode by typing M-x auto-revert-mode, or you can set it to be turned on globally with 'global-auto-revert-mode'.  I have also turned on Global Auto Revert on non-file buffers, which is especially useful for 'dired' buffers.
+
+#+begin_src emacs-lisp
+;;Global Auto Revert
+(global-auto-revert-mode 1)
+(setq global-auto-revert-non-file-buffers t)
+#+end_src
+
+** ORG MODE:
+:PROPERTIES:
+:ID:       e29c8aff-47e4-4b4d-b794-b2cd4726466d
+:END:
+- This is where the vast majority of my customization lies. As I live mostly in ORG Mode.
+*** ORG - Todo States:
+:PROPERTIES:
+:ID:       f0b68567-17a7-4ff9-9f4e-694a7be21747
+:END:
+Custom TODO states & Tags
+#+begin_src emacs-lisp
+;; CUSTOM org TODO states
+(after! org
+(setq org-todo-keywords
+      '((sequence "TODO(t)"
+         "NEXT(n)"
+         "PLANNING(p)"
+         "IN-PROGRESS(i)"
+         "WEEKLY-GOAL(m)"
+         "GOAL(g)"
+         "WAITING(w)"
+         "WORK(b)"
+         "HABIT(h)"
+         "PROJECT(P)"
+         "CALENDAR(c)"
+         "NOTE(N)"
+         "AREA(a)"
+         "|"
+         "DONE(d!)"
+         "COMPLETE(C!)"
+         "HOLD(h)"
+         "SOMEDAY(s)"
+         "RABBITHOLE!(R)")
+        )))
+
+;; CUSTOM TODO colors
+(after! org
+(setq org-todo-keyword-faces
+      '(
+        ("TODO" . (:foreground "#ffdd83" :weight bold))
+        ("NEXT" . (:foreground "light coral" :weight bold))
+        ("PLANNING" . (:foreground "#bd7091" :weight bold))
+        ("IN-PROGRESS" . (:foreground "#ffb86c" :weight bold))
+        ("WEEKLY-GOAL" . (:foreground "light sea green" :weight bold))
+        ("GOAL" . (:foreground "LimeGreen" :weight bold))
+        ("WAITING" . (:foreground "LightPink1" :weight bold))
+        ("WORK" . (:foreground "Cyan" :weight bold))
+        ("HABIT" . (:foreground "RoyalBlue3" :weight bold))
+        ("PROJECT" . (:foreground "SlateBlue1" :weight bold))
+        ("CALENDAR" . (:foreground "chocolate" :weight bold))
+        ("NOTE" . (:foreground "#7d9dc0" :background "#ffb86c" :weight bold))
+        ("AREA" . (:foreground "#7d9dc0" :weight bold))
+
+        ("DONE" . (:foreground "white" :weight bold))
+        ("COMPLETE" . (:strikethrough t :foreground "light gray" :weight bold))
+        ("HOLD" . (:foreground "Grey46" :weight bold))
+        ("SOMEDAY" . (:foreground "cyan1" :weight bold))
+        )))
+
+;; Custom Tag colors
+(setq org-tag-faces
+      '(
+        ("planning"  . (:foreground "mediumPurple1" :weight bold))
+        ("@research"   . (:foreground "royalblue1"    :weight bold))
+        ("QA"        . (:foreground "sienna"        :weight bold))
+        ("CRITICAL"  . (:foreground "red1"          :weight bold))
+        ("HABIT"  . (:foreground "pink"          :weight bold))
+        )
+      )
+#+end_src
+
+*** ORG - CRYPT Setup:
+:PROPERTIES:
+:ID:       0e74d2c4-a7b1-4469-9bee-10ae9613bec9
+:END:
+
+#+begin_src emacs-lisp
+;;;;;;;;;;;;;;;;;;;;;ORG CRYPT
+;; ORG CRYPT TAG Setup for inline encryption
+;; If I place "crypt" tag in any entry it will encrypt it.
+(require 'org-crypt)
+(org-crypt-use-before-save-magic)
+(setq org-tags-exclude-from-inheritance '("crypt"))
+;; GPG key to use for encryption
+;; Either the Key ID or set to nil to use symmetric encryption.
+(setq org-crypt-key nil)
+;; Set shortut to decrypt easier.
+(map! :leader
+      :desc "Org Decrypt Entry"
+      "d e" #'org-decrypt-entry)
+#+end_src
+
+*** ORG - Super Agenda:
+:PROPERTIES:
+:ID:       e043934f-1004-4a7a-9c78-34fc47d62806
+:END:
+
+#+begin_src emacs-lisp
+
+;; Org super agenda setup:
+ (use-package! org-super-agenda
+   :after org-agenda
+   :init
+   (setq org-agenda-skip-scheduled-if-done t
+       org-agenda-skip-deadline-if-done t
+       org-agenda-include-deadlines t
+       org-agenda-start-day nil ;; i.e. today
+       org-agenda-span 1
+       org-agenda-start-on-weekday nil)
+   (setq org-agenda-custom-commands
+         '(("c" "Super view"
+                      ((agenda "" ((org-agenda-span 'day)
+                       (org-super-agenda-groups
+                        '((:name "⏰⏰⏰⏰⏰ --- Today --- ⏰⏰⏰⏰⏰"
+                           :discard (:todo "DONE")
+                           :discard (:tag "habit")
+                           :time-grid t
+                           :date today
+                           :todo "TODAY"
+                           :scheduled today
+                           :discard (:anything)
+                           :order 1)))))
+                       (alltodo "" ((org-agenda-overriding-header "CURRENT STATUS")
+                                    (org-agenda-prefix-format "  %t  %s")
+                          (org-super-agenda-groups
+                           '((:log t)
+                             (:name " 🚧🚧🚧 --- ACTIVE PROJECT(s) --- 🚧🚧🚧 "
+                              :todo "PROJECT"
+                              :order 6
+                              :transformer (--> it
+                                   (upcase it)
+                                   (propertize it 'face '(:foreground "SlateBlue1"))))
+                             (:name "〰️〰️〰 --- Currently Working On --- 〰〰〰"
+                                    :todo "IN-PROGRESS"
+                                    :order 4)
+                             (:name "❗❗❗ --- Important --- ❗❗❗"
+                                    :date today
+                                    :discard (:todo "DONE")
+                                    :priority "A"
+                                    :order 10)
+                             (:name "✅✅✅ --- GOAL --- ✅✅✅"
+                                    :todo "GOAL"
+                                    :order 2
+                                    :transformer (--> it
+                                         (upcase it)
+                                         (propertize it 'face '(:foreground "LimeGreen"))))
+                             (:name "✅✅✅ --- WEEKLY-GOALS --- ✅✅✅"
+                                    :todo "WEEKLY-GOAL"
+                                    :order 3
+                                    :transformer (--> it
+                                         (upcase it)
+                                         (propertize it 'face '(:foreground "light sea green"))))
+                             (:name "❌⚠❌ --- Overdue! --- ❌⚠❌"
+                                    :discard (:todo "DONE")
+                                    :deadline past
+                                    :scheduled past
+                                    :transformer (--> it
+                                         (upcase it)
+                                         (propertize it 'face '(:foreground "red")))
+                                    :order 5)
+                             (:name "🇧🇧🇧 --- WORK --- 🇧🇧🇧"
+                                    :and (:tag "WORK" :todo "WORK")
+                                    :order 9)
+                             (:name "✔✔✔ --- HABIT --- ✔✔✔"
+                                    :and (:scheduled today :tag "habit")
+                                    :transformer (--> it
+                                         (upcase it)
+                                         (propertize it 'face '(:foreground "royalblue1")))
+                                    :order 20)
+                            (:discard (:anything))))))))))
+   :config
+   (org-super-agenda-mode))
+
+#+end_src
+
+*** ORG - Center Screen Shortcut:
+:PROPERTIES:
+:ID:       885acf83-e163-4c82-a4e4-3936f5c6634f
+:END:
+- Easily recenter the screen my hitting leader + s + c
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "recenter-top-bottom"
+      "s c" #'recenter-top-bottom)
+#+end_src
+
+*** ORG - Preview Images in all files:
+:PROPERTIES:
+:ID:       f553677a-4491-4c6f-815f-5fe86c2c7bf9
+:END:
+#+begin_src emacs-lisp
+;; Preview images in all org files on launch
+(setq org-startup-with-inline-images t)
+;;Adjust images to an actual size that doesn't take up the entire screen.
+(setq org-image-actual-width 600)
+
+#+end_src
+
+*** ORG - Drag and Drop Files Easily & Attach:
+:PROPERTIES:
+:ID:       cfc78081-d49a-43db-8163-8f182d59d9b1
+:END:
+- This still does not work (unsure why).
+#+begin_src emacs-lisp
+(require 'org-download)
+(setq-default org-download-image-dir "~/Dropbox/screenshots/")
+;;Allows dropping to dir-ed
+(add-hook 'dired-mode-hook 'org-download-enable)
+
+#+end_src
+
+*** ORG - Set ATTACH Directory:
+:PROPERTIES:
+:ID:       1c5ee3a0-b4bc-49df-9086-52337c770f97
+:END:
+- Actually Set ATTACH directory where images are stored
+#+begin_src emacs-lisp
+(setq org-attach-directory "~/Dropbox/screenshots/")
+#+end_src
+
+*** ORG - Auto Tangle:
+:PROPERTIES:
+:ID:       abe65ea9-84ae-4813-a26c-3d92835a6d32
+:END:
+
+- By adding this ~#+PROPERTY: header-args :tangle /Directory/name_of_file.extension~ to any org file I can output the code block contents to the specified location.
+
+#+begin_src emacs-lisp
+
+;; Enables auto tangling/exporting of code blocks to a unified code file form org mode.
+(use-package! org-auto-tangle
+  :defer t
+  :hook (org-mode . org-auto-tangle-mode)
+  :config
+  (setq org-auto-tangle-default t))
+
+#+end_src
+
+*** ORG - Start all documents in overview mode:
+:PROPERTIES:
+:ID:       fa1c25e1-02c7-45f1-92ff-8c9e2a474e25
+:END:
+- I have large org files with lots of nested headings, this makes it less cumbersome.
+#+begin_src emacs-lisp
+(setq org-startup-folded t)
+
+#+end_src
+
+*** ORG - Add ID to all ORG headindgs on save:
+:PROPERTIES:
+:ID:       d646dd8f-c35f-4058-a9ac-26fb8ec0e5ab
+:END:
+- Add ID to all ORG headindgs on save:
+  - I want the option to be able to import org roam if need be. This adds ID's to all headings so I can then easily back link.
+#+begin_src emacs-lisp
+(add-hook 'org-capture-prepare-finalize-hook 'org-id-get-create)
+(defun my/org-add-ids-to-headlines-in-file ()
+;  "Add ID properties to all headlines in the current file which
+;do not already have one."
+  (interactive)
+  (org-map-entries 'org-id-get-create))
+(add-hook 'org-mode-hook
+          (lambda ()
+            (add-hook 'before-save-hook 'my/org-add-ids-to-headlines-in-file nil 'local)))
+#+end_src
+
+*** ORG - Cosmetics:
+:PROPERTIES:
+:ID:       d2397cc9-f813-473e-9bab-c1559c7c4801
+:END:
+**** Cosmetics - Export with smart quotes:
+:PROPERTIES:
+:ID:       b1d5ffa4-9843-4b35-bd8e-66586ae4ce92
+:END:
+- I use custom smart quotes so this helps me have them remain when exporting.
+#+begin_src emacs-lisp
+;; Export using my custom smart quotes.
+(setq org-export-with-smart-quotes t)
+#+end_src
+
+**** Cosmetics - Hide Emphasis Markers:
+:PROPERTIES:
+:ID:       628eec6c-1afa-438a-bd7d-f6044a8990d0
+:END:
+- This means that the markers used for emphasis will no longer be visible and instead just the outcome.
+
+#+begin_src emacs-lisp
+
+;; Hide emphasis markers in text this means that MD and org syntax icons will not show
+;; effectively acts as preview.
+
+(after! org
+(setq org-hide-emphasis-markers t))
+
+#+end_src
+
+**** Cosmetics - Colour Configuration:
+:PROPERTIES:
+:ID:       f3932cf6-e0f3-49e7-ab03-dc105a59ed6c
+:END:
+#+begin_src emacs-lisp
+
+(after! org
+(setq org-emphasis-alist
+  '(("*" (underline :weight black :foreground "#EB00E4" ))
+   ;; ("/" (:weight black :background "#745B00" :foreground "#FF3D2B" ))
+    ("_" (:weight black :foreground "#79c6ff" ))
+    ("=" (underline :weight black :foreground "#b18c00" ))
+    ("~" (:foreground "#6BB86B" ))
+    ("+" (underline bold :weight italic :foreground "#FF3D2B" )))))
+
+#+end_src
+
+**** Cosmetics - Headline Bullets and Folds:
+:PROPERTIES:
+:ID:       801b5f53-05e7-4ca6-a193-c3525b8d7f33
+:END:
+#+begin_src emacs-lisp
+(setq org-superstar-headline-bullets-list '("› "))
+#+end_src
+**** Cosmetics - Item Bullets:
+:PROPERTIES:
+:ID:       17b3ea4d-35d1-4850-9402-0316d1469cf2
+:END:
+- Custom bulleted list
+#+begin_src emacs-lisp
+
+(setq org-superstar-item-bullet-alist '((?* . ?⋆)
+                                        (?+ . ?‣)
+                                        (?- . ?•)))
+
+#+end_src
+**** Cosmetics - Dropdown Icon:
+:PROPERTIES:
+:ID:       e52b4479-8c54-4516-92a4-71d3b3ce6a3b
+:END:
+- Custom drop down icon.
+#+begin_src emacs-lisp
+(setq org-ellipsis " ⯯")
+#+end_src
+
+**** Cosmetics - Ligatures:
+:PROPERTIES:
+:ID:       603b1fff-d06a-4693-a20a-c441a0d817c7
+:END:
+- Stolen from https://github.com/elken/doom
+#+begin_src emacs-lisp
+(setq-hook! org-mode
+  prettify-symbols-alist '(("#+end_quote" . "”")
+                           ("#+END_QUOTE" . "”")
+                           ("#+begin_quote" . "“")
+                           ("#+BEGIN_QUOTE" . "“")
+                           ("#+end_src" . "«")
+                           ("#+END_SRC" . "«")
+                           ("#+begin_src" . "»")
+                           ("#+BEGIN_SRC" . "»")
+                           ("#+name:" . "»")
+                           ("#+NAME:" . "»")))
+#+end_src
+
+**** Cosmetics - Indent Content under Headings:
+:PROPERTIES:
+:ID:       f5188c3b-c984-4637-aa9d-01e5828397d2
+:END:
+#+begin_src emacs-lisp
+(setq org-adapt-indentation t)
+#+end_src
+**** Cosmetics - Indent All Org Files:
+:PROPERTIES:
+:ID: f055195a-06c5-4eba-a98b-382c1901de26
+:END:
+#+begin_src emacs-lisp
+(require 'org-indent)
+(setq org-startup-indented t)
+#+end_src
+
+*** ORG - ROAM:
+:PROPERTIES:
+:ID:       d2fc4b3c-393e-4a18-a03c-2cf3dcd7c11d
+:END:
+**** Roam - Location:
+:PROPERTIES:
+:ID:       2f17e7b4-9201-4924-ae58-d7be6a5b6894
+:END:
+- Set Roam Main Dir
+#+begin_src emacs-lisp
+(require 'org-roam)
+(setq org-roam-directory "~/Dropbox")
+
+#+end_src
+
+**** Roam - (make git ignored files in subdirectories still searchable)
+:PROPERTIES:
+:ID:       d248366b-fa72-457c-abba-d0ef83e8a540
+:END:
+- Roam - (make git ignored files in subdirectories still searchable)
+#+begin_src emacs-lisp
+(after! org-roam
+  (setq org-roam-list-files-commands '(find fd fdfind rg)))
+
+#+end_src
+**** Roam - Capture Templates:
+:PROPERTIES:
+:ID:       0b82e2bd-d707-4757-97bf-8c912fce2043
+:END:
+| **Path To Template**                              | **Description** | **Keybinding** |
+|-------------------------------------------------+---------------+--------------|
+| ~/.config/orgTemplates/Application.org          | Application   | A            |
+| ~/.config/orgTemplates/AttackTemplate.org       | Attack Type   | a            |
+| ~/.config/orgTemplates/BoxTemplate.org          | Box           | b            |
+| ~/.config/orgTemplates/CPTSSection.org          | CPTS Module   | c            |
+| ~/.config/orgTemplates/DailyReview.org          | Daily Review  | d            |
+| ~/.config/orgTemplates/Pentest.org              | New Pentest   | p            |
+| ~/.config/orgTemplates/ProjectStartTemplate.org | Start Project | n            |
+| ~/.config/orgTemplates/ProjectEndTemplate.org   | End Project   | N            |
+| ~/.config/orgTemplates/ServiceTemplate.org      | Service       | s            |
+| ~/.config/orgTemplates/ToolTemplate.org         | Tool          | t            |
+|-------------------------------------------------+---------------+--------------|
+
+#+begin_src emacs-lisp
+;Roam - Capture Templates:
+(setq org-roam-capture-templates
+'(("d" "default" plain
+      "%?"
+      :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+      :unnarrowed t)
+
+ ("A" "Application" plain
+  (file "~/.config/orgTemplates/Application.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+ ("a" "Attack Type" plain
+  (file "~/.config/orgTemplates/AttackTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+ ("b" "Box" plain
+  (file "~/.config/orgTemplates/BoxTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+ ("c" "CPTS Module" plain
+  (file "~/.config/orgTemplates/CPTSSection.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+ ("d" "Daily Review" plain
+  (file "~/.config/orgTemplates/DailyReview.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+  ("p" "Pentest" plain
+  (file "~/.config/orgTemplates/Pentest.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+
+ ("n" "Start Project" plain
+  (file "~/.config/orgTemplates/ProjectStartTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+ ("N" "End Project" plain
+  (file "~/.config/orgTemplates/ProjectEndTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+  ("s" "Service" plain
+  (file "~/.config/orgTemplates/ServiceTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)
+
+ ("t" "Tool" plain
+  (file "~/.config/orgTemplates/ToolTemplate.org")
+  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+  :unnarrowed t)))
+#+end_src
+
+**** Roam - Render Large Files Faster:
+:PROPERTIES:
+:ID:       7160b423-b9b2-4244-bc8f-2d392e3bb157
+:END:
+- I have very large files for some things so this helps
+  - Taken from: https://github.com/org-roam/org-roam/issues/2399
+
+#+begin_src emacs-lisp
+(defun vr/org-roam-buffer-render-contents-advice (orig-fun &rest args)
+  (let ((org-startup-indented nil))
+    (apply orig-fun args)))
+(advice-add 'org-roam-buffer-render-contents :around #'vr/org-roam-buffer-render-contents-advice)
+#+end_src
+
+*** ORG - Hugo Auto Export:
+:PROPERTIES:
+:ID:       7636b429-40ef-4ccf-8252-8c9480f39afb
+:END:
+#+begin_src emacs-lisp
+(use-package ox-hugo
+  :after org
+  :config
+  (setq org-hugo-base-dir "~/Dropbox/40-49_Career/44-Blog/bloodstiller")
+
+  (defun my/ensure-hugo-title (file)
+    "Ensure the file has a #+title: keyword, adding one based on the filename if missing."
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (unless (re-search-forward "^#\\+title:" nil t)
+        (goto-char (point-min))
+        (insert (format "#+title: %s\n\n"
+                        (file-name-base (file-name-nondirectory file))))
+        (save-buffer))
+      (current-buffer)))
+
+  (defun my/get-hugo-section (file)
+    "Get the Hugo section for the file based on its front matter."
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (if (re-search-forward "^#\\+hugo_section:\\s-*\\(.*\\)$" nil t)
+          (match-string-no-properties 1)
+        "posts")))  ; default to "posts" if no specific section is found
+
+  (defun my/org-roam-link-to-hugo-link (link desc)
+    "Convert an Org-roam link to a Hugo internal link or plain text if file is missing."
+    (let* ((id (org-element-property :path link))
+           (node (org-roam-node-from-id id))
+           (file (when node (org-roam-node-file node)))
+           (title (or desc (when node (org-roam-node-title node)) "Unknown")))
+      (if (and file (file-exists-p file))
+          (format "{{< ref \"%s\" >}}" (file-name-sans-extension (file-name-nondirectory file)))
+        (format "*%s*" title))))  ; Use italic text for missing links
+
+  (defun my/export-org-to-hugo (file)
+    "Export a single org file to Hugo markdown."
+    (with-current-buffer (my/ensure-hugo-title file)
+      (message "Exporting %s" file)
+      (condition-case err
+          (let* ((org-export-with-broken-links t)
+                 (section (my/get-hugo-section file))
+                 (org-hugo-section section)
+                 (org-export-before-parsing-hook '(org-roam-bibtex-replace-links
+                                                   org-roam-replace-roam-links))
+                 (org-hugo-link-org-files-as-md t)
+                 (org-link-parameters '(("id" :export my/org-roam-link-to-hugo-link))))
+            (org-hugo-export-wim-to-md)
+            (message "Exported %s to section: %s" file section))
+        (error
+         (message "Error exporting %s: %s" file (error-message-string err))))
+      (kill-buffer)))
+
+  (defun my/export-all-org-files ()
+    "Export all org files in content-org/ to Hugo markdown."
+    (interactive)
+    (let ((org-files (directory-files-recursively
+                      (expand-file-name "content-org" org-hugo-base-dir)
+                      "\\.org$")))
+      (dolist (file org-files)
+        (my/export-org-to-hugo file))))
+
+  (defun my/maybe-export-all-on-save ()
+    (when (and (buffer-file-name)
+               (string-prefix-p
+                (expand-file-name "content-org" org-hugo-base-dir)
+                (buffer-file-name)))
+      (message "File in content-org saved, exporting all files...")
+      (my/export-all-org-files)
+      (message "All files exported")))
+
+  (add-hook 'after-save-hook #'my/maybe-export-all-on-save))
+
+;; Directory local variables for content-org/
+(dir-locals-set-class-variables
+ 'hugo-content-org
+ '((org-mode . ((eval . (org-hugo-auto-export-mode))))))
+
+(dir-locals-set-directory-class
+ (expand-file-name "content-org" org-hugo-base-dir)
+ 'hugo-content-org)
+
+(message "ox-hugo configuration loaded")
+#+end_src
+
+** Quality Of Life:
+:PROPERTIES:
+:ID:       9738f0a2-351e-4da6-a97b-cc4951baa6be
+:END:
+*** Save Easier:
+:PROPERTIES:
+:ID:       a75ea2ec-7719-4c6a-9748-85a7ff4c5305
+:END:
+- Stolen from https://github.com/elken/doom
+#+begin_src emacs-lisp
+;Back to a simpler time…
+(map! :g "C-s" #'save-buffer)
+#+end_src
+*** Search Easier:
+:PROPERTIES:
+:ID:       4d3c1652-3dd3-42ae-b5d6-b0c80f14cf9e
+:END:
+- Stolen from https://github.com/elken/doom
+#+begin_src emacs-lisp
+; Search easily
+(map! :after evil :gnvi "C-f" #'consult-line)
+#+end_src
+*** Remove line numbers to speed up scrolling:
+:PROPERTIES:
+:ID:       3ce5efb1-e81d-46bf-a121-deeb239ccf9d
+:END:
+#+begin_src shell
+;;(setq display-line-numbers-type nil)
+#+end_src
+*** Use VIM Keybindings to move between windows around:
+:PROPERTIES:
+:ID:       c1aaf0ec-2036-4be9-b2ea-dc2a2e6a19a3
+:END:
+
+- These match my TMUX configs
+
+| COMMAND           | DESCRIPTION           | KEYBINDING |
+|-------------------+-----------------------+------------|
+| evil-window-Left  | Move One Window Left  | C-h        |
+| evil-window-down  | Move One Window Down  | C-j        |
+| evil-window-up    | Move One Window Up    | C-k        |
+| evil-window-right | Move One Window Right | C-l        |
+
+#+begin_src emacs-lisp
+;Use VIM Keybindings to move between windows:
+(define-key evil-motion-state-map (kbd "C-h") #'evil-window-left)
+(define-key evil-motion-state-map (kbd "C-j") #'evil-window-down)
+(define-key evil-motion-state-map (kbd "C-k") #'evil-window-up)
+(define-key evil-motion-state-map (kbd "C-l") #'evil-window-right)
+#+end_src
+*** Zoom In & Out:
+:PROPERTIES:
+:ID:       a8225754-e2fb-40dd-b44e-12455616f8d5
+:END:
+ - Easily zoom with:
+   - In ~C-=~
+   - Out ~C--~
+#+begin_src emacs-lisp
+; Zoom in and Out easily
+(defun my/increase-text-height ()
+  (interactive)
+  (text-scale-increase 1))
+
+(defun my/decrease-text-height ()
+  (interactive)
+  (text-scale-decrease 1))
+
+(global-set-key (kbd "C-=") 'my/increase-text-height)
+(global-set-key (kbd "C--") 'my/decrease-text-height)
+#+end_src
+
+*** Enable Emojis
+:PROPERTIES:
+:ID:       d555b53b-459b-485a-8c57-94e5ffd2f1cf
+:END:
+- Emojify is an Emacs extension to display emojis. It can display github style emojis like :smile: or plain ascii ones like :).
+
+#+begin_src emacs-lisp
+
+;; Enables Emofis
+(use-package emojify
+  :hook (after-init . global-emojify-mode))
+
+#+end_src
+
+*** INSERT DATE:
+:PROPERTIES:
+:ID:       a9b4be95-d099-400e-a095-c86c301a55fb
+:END:
+- Taken directly from: https://gitlab.com/dwt1/dotfiles/-/blob/master/.config/doom/config.org?ref_type=heads
+  - I have added the insert time parts
+Some custom functions to insert the date.  The function 'insert-todays-date' can be used one of three different ways: (1) just the keybinding without the universal argument prefix, (2) with one universal argument prefix, or (3) with two universal argument prefixes.  The universal argument prefix is 'SPC-u' in Doom Emacs (C-u in standard GNU Emacs).  The function 'insert-any-date' only outputs to one format, which is the same format as 'insert-todays-date' without a prefix.
+
+| COMMAND               | EXAMPLE OUTPUT            | KEYBINDING            |
+|-----------------------+---------------------------+-----------------------|
+| dt/insert-todays-date | /Friday, November 19, 2021/ | SPC i d t             |
+| dt/insert-todays-date | /19-11-2021/                | SPC u SPC i d t       |
+| dt/insert-todays-date | /2021-11-19/                | SPC u SPC u SPC i d t |
+| dt/insert-any-date    | /Friday, November 19, 2021/ | SPC i d a             |
+
+#+begin_src emacs-lisp
+(defun dt/insert-todays-date (prefix)
+  "Insert today's date based on a prefix."
+  (interactive "P")
+  (let ((format (cond
+                 ((not prefix) "%A, %B %d, %Y")
+                 ((equal prefix '(4)) "%d-%m-%Y")
+                 ((equal prefix '(16)) "%Y-%m-%d"))))
+    (insert (format-time-string format))))
+
+(defun dt/insert-current-time ()
+  "Insert the current time in HH:MM:SS format."
+  (interactive)
+  (insert (format-time-string "%H:%M:%S")))
+
+(require 'calendar)
+(defun dt/insert-any-date (date)
+  "Insert DATE using the current locale."
+  (interactive (list (calendar-read-date)))
+  (insert (calendar-date-string date)))
+
+(map! :leader
+      (:prefix ("i d" . "Insert date/time")
+        :desc "Insert any date"    "a" #'dt/insert-any-date
+        :desc "Insert today's date" "t" #'dt/insert-todays-date
+        :desc "Insert current time" "c" #'dt/insert-current-time))
+#+end_src
+* packages.el:
+:PROPERTIES:
+:header-args: :tangle packages.el
+:ID:       b83d93d6-bbdf-4f41-8527-ace1b105a0ab
+:END:
+- Dooms package manager. Specify here waht packages to install.
+#+begin_src emacs-lisp
+(package! emojify)
+(package! org-super-agenda)
+(package! magithub)
+(package! flycheck-aspell)
+(package! calfw)
+(package! calfw-org)
+(package! dashboard)
+(package! dired-open)
+(package! dired-subtree)
+(package! dirvish)
+(package! dmenu)
+(package! elfeed-goodies)
+(package! evil-tutor)
+(package! exwm)
+(package! ivy-posframe)
+(package! mw-thesaurus)
+(package! org-auto-tangle)
+(package! org-web-tools)
+(package! ox-hugo)
+;; So I can export org to md well
+;;(package! ox-gemini)
+(package! peep-dired)
+;;(package! password-store)
+(package! rainbow-mode)
+(package! resize-window)
+;;(package! tldr)
+(package! wc-mode)
+(package! beacon)
+;;(package! clippy)
+;;(package! minimap)
+(package! olivetti)
+(package! powershell)
+;;(package! multi-vterm)
+(package! org-download)
+(package! org-ros)
+(package! mini-frame)
+(package! tron-legacy-theme)
+
+(package! vlf :recipe (:host github :repo "emacs-straight/vlf" :files ("*.el"))
+  :pin "9b7bc521e54af2c7a5c882e4758b66ee4af1a152")
+;; For emacs-everywhere browser integration
+(package! atomic-chrome)
+
+
+#+end_src
+* init.el
+:PROPERTIES:
+:header-args: :tangle init.el
+:ID:       2fd52c4f-aead-4de9-8ac4-b8881d764b69
+:END:
+- This file controls what Doom modules are enabled and what order they load in. Remember to run '~doom sync~' after modifying it!
+#+begin_src emacs-lisp
+;;; init.el -*- lexical-binding: t; -*-
+
+;; This file controls what Doom modules are enabled and what order they load
+;; in. Remember to run 'doom sync' after modifying it!
+
+
+(doom! :input
+       ;;chinese
+       ;;japanese
+       ;;layout            ; auie,ctsrnm is the superior home row
+
+       :completion
+       company           ; the ultimate code completion backend
+       ;;helm              ; the *other* search engine for love and life
+       ;;ido               ; the other *other* search engine...
+       ;;ivy               ; a search engine for love and life
+       vertico           ; the search engine of the future
+
+       :ui
+       deft              ; notational velocity for Emacs
+       doom              ; what makes DOOM look the way it does
+       doom-dashboard    ; a nifty splash screen for Emacs
+       doom-quit         ; DOOM quit-message prompts when you quit Emacs
+       (emoji +unicode)  ; 🙂
+       hl-todo           ; highlight TODO/FIXME/NOTE/DEPRECATED/HACK/REVIEW
+       ;;hydra
+       ;;indent-guides     ; highlighted indent columns
+       ligatures         ; ligatures and symbols to make your code pretty again
+       ;;minimap           ; show a map of the code on the side
+       (modeline +ligt)          ; snazzy, Atom-inspired modeline, plus API
+       ;;nav-flash         ; blink cursor line after big motions
+       neotree           ; a project drawer, like NERDTree for vim
+       ophints           ; highlight the region an operation acts on
+       (popup +defaults)   ; tame sudden yet inevitable temporary windows
+       ;;tabs              ; a tab bar for Emacs
+       treemacs          ; a project drawer, like neotree but cooler
+       ;;unicode           ; extended unicode support for various languages
+       ;;(vc-gutter +pretty)         ; vcs diff in the fringe
+       vi-tilde-fringe   ; fringe tildes to mark beyond EOB
+       window-select     ; visually switch windows
+       workspaces        ; tab emulation, persistence & separate workspaces
+       ;;zen               ; distraction-free coding or writing
+
+       :editor
+       (evil +everywhere); come to the dark side, we have cookies
+       file-templates    ; auto-snippets for empty files
+       fold              ; (nigh) universal code folding
+       (format +onsave)  ; automated prettiness
+       ;;god               ; run Emacs commands without modifier keys
+       ;;lispy             ; vim for lisp, for people who don't like vim
+       ;;multiple-cursors  ; editing in many places at once
+       ;;objed             ; text object editing for the innocent
+       ;;parinfer          ; turn lisp into python, sort of
+       ;;rotate-text       ; cycle region at point between text candidates
+       snippets          ; my elves. They type so I don't have to
+       ;;word-wrap         ; soft wrapping with language-aware indent
+
+       :emacs
+       (dired +icons)             ; making dired pretty [functional]
+       electric          ; smarter, keyword-based electric-indent
+       ibuffer         ; interactive buffer management
+       undo              ; persistent, smarter undo for your inevitable mistakes
+       vc                ; version-control and Emacs, sitting in a tree
+
+       :term
+       eshell            ; the elisp shell that works everywhere
+       ;;shell             ; simple shell REPL for Emacs
+       ;;term              ; basic terminal emulator for Emacs
+       vterm             ; the best terminal emulation in Emacs
+
+       :checkers
+       syntax              ; tasing you for every semicolon you forget
+       (spell +flyspell) ; tasing you for misspelling mispelling
+       grammar           ; tasing grammar mistake every you make
+
+       :tools
+       ;;ansible
+       ;;debugger          ; FIXME stepping through code, to help you add bugs
+       ;;direnv
+       ;;docker
+       ;;editorconfig      ; let someone else argue about tabs vs spaces
+       ;;ein               ; tame Jupyter notebooks with emacs
+       (eval +overlay)     ; run code, run (also, repls)
+       ;;gist              ; interacting with github gists
+       lookup              ; navigate your code and its documentation
+       lsp               ; M-x vscode
+       magit             ; a git porcelain for Emacs
+       ;;make              ; run make tasks from Emacs
+       ;;pass              ; password manager for nerds
+       pdf               ; pdf enhancements
+       ;;prodigy           ; FIXME managing external services & code builders
+       rgb               ; creating color strings
+       taskrunner        ; taskrunner for all your projects
+       ;;terraform         ; infrastructure as code
+       tmux              ; an API for interacting with tmux
+       ;;upload            ; map local to remote projects via ssh/ftp
+
+       :os
+       ;;(:if IS-MAC macos)  ; improve compatibility with macOS
+       tty               ; improve the terminal Emacs experience
+
+       :lang
+       ;;agda              ; types of types of types of types...
+       ;;beancount         ; mind the GAAP
+       ;;cc                ; C > C++ == 1
+       ;;clojure           ; java with a lisp
+       ;;common-lisp       ; if you've seen one lisp, you've seen them all
+       ;;coq               ; proofs-as-programs
+       ;;crystal           ; ruby at the speed of c
+       ;;csharp            ; unity, .NET, and mono shenanigans
+       data              ; config/data formats
+       ;;(dart +flutter)   ; paint ui and not much else
+       ;;dhall
+       ;;elixir            ; erlang done right
+       ;;elm               ; care for a cup of TEA?
+       emacs-lisp        ; drown in parentheses
+       ;;erlang            ; an elegant language for a more civilized age
+       ;;ess               ; emacs speaks statistics
+       ;;factor
+       ;;faust             ; dsp, but you get to keep your soul
+       ;;fsharp            ; ML stands for Microsoft's Language
+       ;;fstar             ; (dependent) types and (monadic) effects and Z3
+       ;;gdscript          ; the language you waited for
+       ;;(go +lsp)         ; the hipster dialect
+       ;;(haskell +lsp)    ; a language that's lazier than I am
+       ;;hy                ; readability of scheme w/ speed of python
+       ;;idris             ; a language you can depend on
+       json              ; At least it ain't XML
+       ;;(java +meghanada) ; the poster child for carpal tunnel syndrome
+       javascript        ; all(hope(abandon(ye(who(enter(here))))))
+       ;;julia             ; a better, faster MATLAB
+       ;;kotlin            ; a better, slicker Java(Script)
+       ;;latex             ; writing papers in Emacs has never been so fun
+       ;;lean              ; for folks with too much to prove
+       ;;ledger            ; be audit you can be accounting
+       ;;lua               ; one-based indices? one-based indices
+       (markdown +grip)          ; writing docs for people to ignore
+       ;;nim               ; python + lisp at the speed of c
+       nix               ; I hereby declare "nix geht mehr!"
+       ;;ocaml             ; an objective camel
+       (org +pretty
+            +org-super-agenda
+            +journal
+            +hugo
+            +pandoc
+            +present
+            +dragndrop
+            +pomodoro
+            +habit               ; organize your plain life in plain text
+            +roam2)
+       php               ; perl's insecure younger brother
+       ;;plantuml          ; diagrams for confusing people more
+       ;;purescript        ; javascript, but functional
+       python            ; beautiful is better than ugly
+       powershell         ; will it work?
+       ;;qt                ; the 'cutest' gui framework ever
+       ;;racket            ; a DSL for DSLs
+       ;;raku              ; the artist formerly known as perl6
+       ;;rest              ; Emacs as a REST client
+       ;;rst               ; ReST in peace
+       ;;(ruby +rails)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
+       ;;rust              ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
+       ;;scala             ; java, but good
+       ;;(scheme +guile)   ; a fully conniving family of lisps
+       sh                ; she sells {ba,z,fi}sh shells on the C xor
+       ;;sml
+       ;;solidity          ; do you need a blockchain? No.
+       ;;swift             ; who asked for emoji variables?
+       ;;terra             ; Earth and Moon in alignment for performance.
+       ;;web               ; the tubes
+       yaml              ; JSON, but readable
+       ;;zig               ; C, but simpler
+
+       :email
+       ;;(mu4e +org +gmail)
+       ;;notmuch
+       ;;(wanderlust +gmail)
+
+       :app
+       ;;calendar
+       ;;emms
+       everywhere        ; *leave* Emacs!? You must be joking
+       ;;irc               ; how neckbeards socialize
+       ;;(rss +org)        ; emacs as an RSS reader
+       ;;twitter           ; twitter client https://twitter.com/vnought
+
+       :config
+       ;;literate
+       (default +bindings +smartparens))
+#+end_src
+* custom.el
+:PROPERTIES:
+:header-args: :tangle custom.el
+:ID:       694ba278-f923-4dd2-b300-0f2aacf4d27a
+:END:
+#+begin_src emacs-lisp
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(warning-suppress-log-types '((emacs))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+(setq org-gtd-update-ack "3.0.0")
+
+#+end_src

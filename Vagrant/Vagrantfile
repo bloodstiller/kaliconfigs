@@ -1,0 +1,58 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+    config.vm.box = "kalilinux/rolling"
+  
+    # Create a forwarded port
+    # This is used to access the BloodHound UI
+    config.vm.network "forwarded_port", guest: 8080, host: 8888
+    # This is used to automatically correct for port conflicts
+    auto_correct = true
+
+    # Create a private network. In VirtualBox, this is a Host-Only network
+    config.vm.network "private_network", ip: "192.168.57.11"
+
+    # This is used to forward the X11 display for GUI
+    config.ssh.forward_x11 = true
+
+    # Mount folders & files: 
+    config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+    config.vm.synced_folder "../bloodhound", "/home/vagrant/bloodhound", type: "virtualbox", owner: "vagrant", group: "vagrant"
+    config.vm.synced_folder "../Tmuxinator", "/home/vagrant/.config/tmuxinator", type: "virtualbox", owner: "vagrant", group: "vagrant"
+    config.vm.synced_folder "../Tmux", "/home/vagrant/.config/tmux", type: "virtualbox", owner: "vagrant", group: "vagrant"
+    config.vm.synced_folder "../Zsh", "/tmp/zsh", type: "virtualbox", owner: "vagrant", group: "vagrant"
+    # Add Dropbox synced folders
+    config.vm.synced_folder "~/Dropbox/40", "/tmp/zsh", type: "virtualbox", owner: "vagrant", group: "vagrant"
+    
+    # Provision the machine with a shell script
+    config.vm.provision "shell", inline: <<-EOF
+      cp /tmp/zsh/.zshrc /home/vagrant/.zshrc
+      chown vagrant:vagrant /home/vagrant/.zshrc
+      chmod 644 /home/vagrant/.zshrc
+
+      sudo apt update
+      sudo apt upgrade -y
+      sudo apt install -y bat
+      sudo apt install eza
+      # transfer all install programs from kali_setup.sh to here
+
+      #gem install tmuxinator
+      #wget https://raw.githubusercontent.com/tmuxinator/tmuxinator/master/completion/tmuxinator.zsh -O /usr/local/share/zsh/site-functions/_tmuxinator
+
+    EOF
+
+    # VirtualBox specific settings
+    config.vm.provider "virtualbox" do |vb|
+      # Hide the VirtualBox GUI when booting the machine
+      vb.gui = false
+      vb.memory = "8192"
+      vb.cpus = 4
+      vb.name = "Kali-Rolling"
+    end
+
+# Provisioning configuration for Ansible.
+config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "../Ansible/configure-kali.yml" #e.g playbook.yml
+end
+end

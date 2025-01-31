@@ -1,0 +1,39 @@
+
+[scrolling]
+history = 100_000
+
+[window]
+dynamic_padding = false
+opacity = 1
+title = "Alacritty"
+
+  [window.class]
+  general = "Alacritty"
+  instance = "Alacritty"
+
+  [window.padding]
+  x = 10
+  y = 10
+
+[font]
+size = 13.5
+
+  [font.bold]
+  style = "Bold"
+
+  [font.bold_italic]
+  style = "Mono Bold"
+
+  [font.italic]
+  style = "Mono Bold"
+
+  [font.normal]
+
+  [font.offset]
+  x = 0
+  y = 1
+
+[env]
+TERM = "xterm-256color"
+
+
