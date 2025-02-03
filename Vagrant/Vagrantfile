@@ -31,14 +31,8 @@ Vagrant.configure("2") do |config|
       chown vagrant:vagrant /home/vagrant/.zshrc
       chmod 644 /home/vagrant/.zshrc
 
-      sudo apt update
-      sudo apt upgrade -y
-      #sudo apt install -y bat
-      #sudo apt install eza
-      # transfer all install programs from kali_setup.sh to here
-
-      #gem install tmuxinator
-      #wget https://raw.githubusercontent.com/tmuxinator/tmuxinator/master/completion/tmuxinator.zsh -O /usr/local/share/zsh/site-functions/_tmuxinator
+      #sudo apt update
+      #sudo apt upgrade -y
 
     EOF
 
