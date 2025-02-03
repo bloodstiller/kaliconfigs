@@ -11,16 +11,20 @@
     - name: Update apt cache
       apt:
         update_cache: yes
+        cache_valid_time: 3600
 
     - name: Install base packages
       apt:
         name:
-        #  - emacs
           - eza
           - alacritty
           - git
           - bat
           - seclists
+          - git 
+          - emacs
+          - ripgrep
+          - fd-find
         state: present
 
     - name: Create docker GPG directory
@@ -107,18 +111,103 @@
         dest: /usr/local/bin/kerbrute
         mode: '0755'
 
-    - name: Install Doom Emacs
-      become_user: vagrant
-      block:
-        - name: Clone Doom Emacs
-          git:
-            repo: https://github.com/doomemacs/doomemacs
-            dest: "{{ user_home }}/.emacs.d"
-            depth: 1
-        - name: Install Doom Emacs
-          shell: "{{ user_home }}/.emacs.d/bin/doom install --force"
-          args:
-            creates: "{{ user_home }}/.emacs.d/bin/doom"
+    - name: Install build dependencies for Emacs
+      apt:
+        name:
+          - build-essential
+          - libgccjit-12-dev
+          - libgnutls28-dev
+          - libjansson4
+          - libjansson-dev
+          - libncurses-dev
+          - libsqlite3-dev
+          - libgif-dev
+          - libjpeg-dev
+          - libpng-dev
+          - libtiff5-dev
+          - libxpm-dev
+          - libwebp-dev
+          - libgtk-3-dev
+          - texinfo
+          - autoconf
+          - automake
+          - pkg-config
+        state: present
+        install_recommends: no
+      register: pkg_result
+      retries: 3
+      delay: 5
+      until: pkg_result is success
+
+    - name: Install tree-sitter separately
+      apt:
+        name: libtree-sitter-dev
+        state: present
+      register: tree_sitter_result
+      retries: 3
+      delay: 5
+      until: tree_sitter_result is success
+
+    - name: Check if Emacs 29.4 is installed
+      command: emacs --version
+      register: emacs_version
+      ignore_errors: true
+      changed_when: false
+
+    - name: Clone Emacs repository
+      git:
+        repo: git://git.savannah.gnu.org/emacs.git
+        dest: /tmp/emacs
+        version: emacs-29.4
+      when: "emacs_version.rc != 0 or '29.4' not in emacs_version.stdout|default('')"
+
+    - name: Run autogen
+      shell: |
+        cd /tmp/emacs
+        ./autogen.sh
+      when: "emacs_version.rc != 0 or '29.4' not in emacs_version.stdout|default('')"
+
+    - name: Configure Emacs
+      shell: |
+        cd /tmp/emacs
+        ./configure --with-native-compilation --with-json --with-tree-sitter --with-sqlite3
+      args:
+        creates: /tmp/emacs/Makefile
+      when: "emacs_version.rc != 0 or '29.4' not in emacs_version.stdout|default('')"
+
+    - name: Build Emacs
+      shell: |
+        cd /tmp/emacs
+        make -j$(nproc)
+      args:
+        creates: /tmp/emacs/src/emacs
+      when: "emacs_version.rc != 0 or '29.4' not in emacs_version.stdout|default('')"
+      async: 1800
+      poll: 15
+
+    - name: Install Emacs
+      become: yes
+      shell: |
+        cd /tmp/emacs
+        make install
+      args:
+        creates: /usr/local/bin/emacs
+      when: "emacs_version.rc != 0 or '29.4' not in emacs_version.stdout|default('')"
+      async: 900
+      poll: 15
+
+    - name: Install other base packages
+      apt:
+        name:
+          - eza
+          - alacritty
+          - git
+          - bat
+          - seclists
+          - ripgrep
+          - fd-find
+        state: present
+        install_recommends: no
 
     - name: Setup dotfiles
       become_user: vagrant
@@ -127,7 +216,10 @@
           git:
             repo: https://github.com/bloodstiller/kaliconfigs.git
             dest: "{{ user_home }}/.dotfiles"
-
+            version: main  # Or whatever branch you're using
+            update: yes # Ensures latest version is cloned
+            clone: yes
+            force: yes  # This will overwrite local changes
         - name: Create required directories
           file:
             path: "{{ item }}"
@@ -152,6 +244,32 @@
             - { src: "{{ user_home }}/.dotfiles/Alacritty", dest: "{{ user_home }}/.config/Alacritty" }
             - { src: "{{ user_home }}/.dotfiles/Tmux/.tmux.conf", dest: "{{ user_home }}/.tmux.conf" }
 
+    - name: Install Doom Emacs
+      become_user: vagrant
+      block:
+        - name: Clone Doom Emacs
+          git:
+            repo: https://github.com/doomemacs/doomemacs
+            dest: "{{ user_home }}/.config/emacs"
+            depth: 1
+
+        - name: Update Doom recipe repositories
+          shell: "{{ user_home }}/.config/emacs/bin/doom sync -u"
+          async: 900
+          poll: 15
+
+        - name: Install Doom Emacs
+          shell: "{{ user_home }}/.config/emacs/bin/doom install --force"
+          args:
+            creates: "{{ user_home }}/.emacs.d/bin/doom"
+          async: 900
+          poll: 15
+
+        - name: Sync Doom Emacs
+          shell: "{{ user_home }}/.config/emacs/bin/doom sync"
+          async: 900
+          poll: 15
+
     - name: Enable Docker service
       systemd:
         name: docker
@@ -168,3 +286,4 @@
       apt:
         autoremove: yes
         clean: yes
+

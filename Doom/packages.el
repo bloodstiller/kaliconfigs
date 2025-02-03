@@ -35,8 +35,6 @@
 (package! org-ros)
 (package! mini-frame)
 (package! tron-legacy-theme)
+(package! git-commit
+  :recipe (:host github :repo "magit/magit" :files ("lisp/git-commit.el")))
 
-(package! vlf :recipe (:host github :repo "emacs-straight/vlf" :files ("*.el"))
-  :pin "9b7bc521e54af2c7a5c882e4758b66ee4af1a152")
-;; For emacs-everywhere browser integration
-(package! atomic-chrome)
