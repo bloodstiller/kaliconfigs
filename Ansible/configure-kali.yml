@@ -13,6 +13,29 @@
         update_cache: yes
         cache_valid_time: 3600
 
+    - name: Download Iosevka Nerd Font
+      get_url:
+        url: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/Iosevka.zip
+        dest: /tmp/Iosevka.zip
+        mode: '0644'
+
+    - name: Install unzip if not present
+      apt:
+        name: unzip
+        state: present
+
+    - name: Extract Iosevka font
+      unarchive:
+        src: /tmp/Iosevka.zip
+        dest: "/usr/local/share/fonts/"
+        remote_src: yes
+        owner: vagrant
+        group: vagrant
+
+    - name: Update font cache
+      command: fc-cache -fv
+      become_user: vagrant
+
     - name: Install base packages
       apt:
         name:
@@ -253,22 +276,18 @@
             dest: "{{ user_home }}/.config/emacs"
             depth: 1
 
-        - name: Update Doom recipe repositories
-          shell: "{{ user_home }}/.config/emacs/bin/doom sync -u"
-          async: 900
-          poll: 15
-
         - name: Install Doom Emacs
-          shell: "{{ user_home }}/.config/emacs/bin/doom install --force"
+          shell: "{{ user_home }}/.emacs.d/bin/doom install --force"
           args:
             creates: "{{ user_home }}/.emacs.d/bin/doom"
           async: 900
           poll: 15
 
-        - name: Sync Doom Emacs
-          shell: "{{ user_home }}/.config/emacs/bin/doom sync"
+        - name: Update Doom recipe repositories
+          shell: "{{ user_home }}/.emacs.d/bin/doom sync -u"
           async: 900
           poll: 15
+
 
     - name: Enable Docker service
       systemd:

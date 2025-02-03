@@ -1,120 +1,115 @@
 # Kali Linux Configuration Automation
 
-This repository contains automated configuration scripts for setting up a Kali Linux environment using Vagrant and Ansible. It provides a consistent, reproducible development environment that can be quickly deployed on any system supporting Vagrant.
-
-## Prerequisites
-
-- [Vagrant](https://www.vagrantup.com/downloads)
-- [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
-- [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
+This repository provides automated configuration scripts for setting up a fully-featured Kali Linux environment using Vagrant and Ansible. It creates a consistent, reproducible development environment that can be quickly deployed on any system supporting Vagrant.
 
 ## Quick Start
 
 ```bash
-#clone the repository
+# Clone the repository
 git clone https://github.com/bloodstiller/kaliconfigs.git
 
-#navigate to the vagrant directory
+# Navigate to the vagrant directory
 cd kaliconfigs/Vagrant
 
-#start the virtual machine
+# Start the virtual machine
 vagrant up
 
 # SSH into the virtual machine
 vagrant ssh
 ```
 
-## Features
+## Prerequisites
 
-- Automated Kali Linux setup using Vagrant
-- Configuration management with Ansible
-- Includes common security tools and utilities:
-  - Emacs (no-X11 version)
-  - Eza (modern ls replacement)
-  - Alacritty terminal
-  - Git
-  - Bat (better cat)
-  - SecLists
+Before getting started, ensure you have the following installed:
+- [Vagrant](https://www.vagrantup.com/downloads)
+- [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+- [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
 
-## Development and Testing
+## Included Tools & Features
 
-For faster development cycles, you can:
+### Security Tools
+- SecLists for penetration testing
+- Kerbrute for Kerberos authentication testing
+- Statistically Likely Usernames wordlist
+- Common pentesting tools
+- Bloodhound for Active Directory analysis (dockerized)
 
-1. Use `vagrant provision` to rerun just the Ansible playbooks
+### Development Environment
+- Emacs 29.4 with native compilation
+- Doom Emacs configuration
+- Git version control
+- Docker and Docker Compose (mainly for bloodhound)
+- Build tools and development libraries
+
+### Modern Terminal Experience
+- Alacritty terminal emulator
+- Starship cross-shell prompt
+- Tmuxinator for session management
+
+### Command Line Improvements
+- Eza (modern ls replacement)
+- Bat (better cat)
+- Ripgrep for searching
+- fd-find for file discovery
+- Enhanced Zsh configuration:
+  - zsh-autosuggestions
+  - zsh-syntax-highlighting
+  - zsh-autocomplete
+  - fast-syntax-highlighting
+
+## Project Structure
+
+```bash
+kaliconfigs/
+├── Ansible/
+│   ├── configure-kali.yml    # Main Ansible playbook
+├── Vagrant/
+│   ├── Vagrantfile          # Vagrant configuration
+└── README.md
+```
+
+## Development Workflow
+
+For efficient development and testing:
+
+1. Rerun only Ansible playbooks:
+   ```bash
+   vagrant provision
+   ```
+
 2. Run Ansible directly against the VM:
-   ```bash:45.00-KaliConfigs/README.md
+   ```bash
    vagrant ssh-config > vagrant-ssh-config
    ansible-playbook -i .vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory Ansible/configure-kali.yml
    ```
-3. Take snapshots before major changes:
+
+3. Use snapshots for safe testing:
    ```bash
    vagrant snapshot save baseline
    vagrant snapshot restore baseline
    ```
 
-## Directory Structure
+## Terminal Configuration
 
-```bash
-kaliconfigs/
-├── Ansible/
-│ ├── configure-kali.yml
-├── Vagrant/
-│ ├── Vagrantfile
-├── README.md
-```
+### Alacritty Settings
 
-## Contributing
+The Alacritty terminal emulator is configured with:
+- Large scrollback history (100,000 lines)
+- Customizable window properties
+- JetBrains Mono and Ubuntu Mono fonts
+- Extensive color theme support
 
-Feel free to submit issues and pull requests for additional configurations or improvements.
-
-## License
-
-[Your chosen license]
-
-# Kali Linux Configuration Files
-
-This repository contains various configuration files for Kali Linux.
-
-## Alacritty
-
-The `Alacritty/` directory contains configuration files for the Alacritty terminal emulator, including:
-
-- `alacritty.toml` - Main configuration file with settings for:
-  - Scrolling history
-  - Window properties (padding, opacity, title)
-  - Font configuration (JetBrains Mono and Ubuntu Mono)
-  - Terminal colors
-  - Key bindings
-
-### Color Themes
-
-Multiple color themes are available:
-- Alabaster (Light & Dark variants)
-- Afterglow
-- Cobalt2
+Available color themes include:
+- Alabaster (Light & Dark)
 - Dracula
 - Doom One
 - Gruvbox Dark
-- Mariana
-- Monokai
 - Nord
-- OceanicNext
-- Palenight
-- Solarized (Light & Dark variants)
-- Tomorrow Night
+- Solarized (Light & Dark)
+- And many more...
 
-Themes can be imported using the `import` directive in the config file.
-
-### Key Features
-
-- Configurable font sizes and families
-- Custom key bindings for common operations
-- Multiple color schemes available
-- Window padding and opacity settings
-- Extensive scrollback buffer (100,000 lines)
-- Support for both TOML and YAML configurations
-
-
-## TODO
-- [ ] Ensure emacs is installed only downloading repo currently.
-- [ ] Mount other shared folders for doing boxes etc. 
+Configuration files can use either TOML or YAML format, with support for:
+- Custom key bindings
+- Font configuration
+- Window opacity settings
+- Theme importing
