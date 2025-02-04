@@ -13,7 +13,7 @@
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Download Iosevka Nerd Font
+    - name: Download Iosevka Nerd Font (be patient big file!)
       get_url:
         url: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/Iosevka.zip
         dest: /tmp/Iosevka.zip
@@ -277,14 +277,15 @@
             depth: 1
 
         - name: Install Doom Emacs
-          shell: "{{ user_home }}/.emacs.d/bin/doom install --force"
+          # This is correct and the path is correct!
+          shell: "{{ user_home }}/.config/emacs/bin/doom install --force"
           args:
             creates: "{{ user_home }}/.emacs.d/bin/doom"
           async: 900
           poll: 15
 
         - name: Update Doom recipe repositories
-          shell: "{{ user_home }}/.emacs.d/bin/doom sync -u"
+          shell: "{{ user_home }}/.config/emacs/bin/doom sync -u"
           async: 900
           poll: 15
 

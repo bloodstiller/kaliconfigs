@@ -1,0 +1,50 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "kalilinux/rolling"
+  config.vm.hostname = "kali-vm"  # Set hostname inside VM
+  
+  # Disable the default share
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+  
+  # Force libvirt provider
+  ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+
+  # QEMU/libvirt specific settings
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.memory = 8192
+    libvirt.cpus = 4
+    libvirt.graphics_type = "spice"
+    libvirt.video_type = "qxl"
+    libvirt.title = "Kali Linux VM"  # Set VM title in libvirt
+    libvirt.description = "Kali Linux VM for Security Testing"  # Optional description
+
+    # Enable shared memory for VirtioFS
+    libvirt.memorybacking :access, :mode => "shared"
+  end
+
+  # Configure shared folders using VirtioFS
+  config.vm.synced_folder "/home/martin/.config/tmuxinator", "/home/vagrant/.config/tmuxinator", 
+    type: "virtiofs"
+  
+  config.vm.synced_folder "/home/martin/Dropbox/40-49_Career/45-KaliShared/45.02-LinuxTools", "/home/vagrant/linuxTools", 
+    type: "virtiofs"
+  
+  config.vm.synced_folder "/home/martin/Dropbox/40-49_Career/45-KaliShared/45.01-WindowsTools", "/home/vagrant/windowsTools", 
+    type: "virtiofs"
+  
+  config.vm.synced_folder "/home/martin/Dropbox/40-49_Career", "/home/vagrant/Dropbox/40-49_Career", 
+    type: "virtiofs"
+
+  # Network settings
+  config.vm.network "private_network", ip: "192.168.57.11"
+  config.ssh.forward_x11 = true
+
+
+  # Provisioning configuration for Ansible
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "../../Ansible/configure-kali.yml"
+  end
+end

@@ -1,6 +1,6 @@
 Tmuxinator/
 fstab
 hosts
-Vagrant/.vagrant/
+.vagrant/
 45.00-KaliConfigs.code-workspace
 TODO

@@ -1,6 +1,14 @@
 # Kali Linux Configuration Automation
 
-This repository provides automated configuration scripts for setting up a fully-featured Kali Linux environment using Vagrant and Ansible. It creates a consistent, reproducible development environment that can be quickly deployed on any system supporting Vagrant.
+This repository provides automated configuration scripts for setting up a fully-featured Kali Linux environment using Vagrant and Ansible. It supports both VirtualBox and QEMU/KVM providers, allowing you to choose the virtualization solution that best fits your needs.
+
+## Documentation
+
+- [Ansible Configuration Guide](Ansible/README.md) - Details on customizing the Ansible playbooks
+- [QEMU/KVM Setup Guide](Vagrant/QEMU/README.md) - Instructions for QEMU/KVM setup
+- [Alacritty Configuration](Alacritty/README.org) - Terminal emulator configuration
+- [Doom Emacs Configuration](Doom/README.org) - Doom Emacs setup and customization
+- [Tmux Configuration](Tmux/README.org) - Terminal multiplexer setup and keybindings
 
 ## Quick Start
 
@@ -8,8 +16,11 @@ This repository provides automated configuration scripts for setting up a fully-
 # Clone the repository
 git clone https://github.com/bloodstiller/kaliconfigs.git
 
-# Navigate to the vagrant directory
-cd kaliconfigs/Vagrant
+# For QEMU/KVM:
+cd kaliconfigs/Vagrant/QEMU
+
+# For VirtualBox:
+cd kaliconfigs/Vagrant/VirtualBox
 
 # Start the virtual machine
 vagrant up
@@ -20,10 +31,22 @@ vagrant ssh
 
 ## Prerequisites
 
-Before getting started, ensure you have the following installed:
-- [Vagrant](https://www.vagrantup.com/downloads)
+Choose your preferred virtualization provider:
+
+### VirtualBox Setup
 - [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+- [Vagrant](https://www.vagrantup.com/downloads)
 - [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
+
+### QEMU/KVM Setup (Linux only)
+- [QEMU/KVM](https://www.qemu.org/download/) (≥ 4.2)
+- [Libvirt](https://libvirt.org/downloads.html) (≥ 6.2.0)
+- [Vagrant](https://www.vagrantup.com/downloads)
+- [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
+
+For QEMU/KVM shared folder support:
+- Host: Linux kernel ≥ 5.4
+- Guest: Linux kernel ≥ 5.4
 
 ## Included Tools & Features
 
@@ -62,11 +85,31 @@ Before getting started, ensure you have the following installed:
 ```bash
 kaliconfigs/
 ├── Ansible/
-│   ├── configure-kali.yml    # Main Ansible playbook
+│   ├── configure-kali.yml         # Main Ansible playbook (works with both providers)
+│   └── configure-shared-folders.yml # VirtioFS configuration for QEMU/KVM
 ├── Vagrant/
-│   ├── Vagrantfile          # Vagrant configuration
+│   ├── QEMU/                      # QEMU/KVM specific configuration
+│   │   ├── Vagrantfile
+│   │   └── README.md
+│   └── VirtualBox/               # VirtualBox specific configuration
+│       ├── Vagrantfile
+│       └── README.md
 └── README.md
 ```
+
+## Provider-Specific Features
+
+### VirtualBox
+- Works on all major operating systems
+- Simpler setup process
+- Traditional shared folder mechanism
+
+### QEMU/KVM
+- Better performance on Linux hosts
+- VirtioFS for efficient file sharing
+- Native virtualization support
+
+The main Ansible playbook (`configure-kali.yml`) works identically with both providers, ensuring a consistent environment regardless of your virtualization choice.
 
 ## Development Workflow
 
