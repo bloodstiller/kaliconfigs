@@ -370,3 +370,20 @@
 ;; Enables Emofis
 (use-package emojify
   :hook (after-init . global-emojify-mode))
+
+;; Let normal text wrap but allow horizontal scrolling where needed
+(setq org-startup-truncated nil)
+
+(use-package! phscroll
+  :after org
+  :config
+  ;; Load the Org integration
+  (require 'org-phscroll)
+  ;; Turn it on automatically in Org buffers
+  (add-hook 'org-mode-hook #'org-phscroll-mode)
+
+  ;; Optional: a convenient localleader toggle
+  (map! :after org
+        :map org-mode-map
+        :localleader
+        "t h" #'org-phscroll-mode))
