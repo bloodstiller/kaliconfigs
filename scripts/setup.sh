@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+
 set -e
 
 # Ensure we're not running as root
@@ -12,6 +13,8 @@ export DEBIAN_FRONTEND=noninteractive
 
 # Preseed Postfix to avoid interactive prompt (in case it's installed)
 echo "postfix postfix/main_mailer_type select No configuration" | sudo debconf-set-selections
+
+cd ~/
 
 # Update and install essential system packages
 sudo apt update && sudo apt upgrade -y
