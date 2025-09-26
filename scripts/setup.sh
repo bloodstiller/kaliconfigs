@@ -92,5 +92,6 @@ ln -s ~/.dotfiles/Zsh/.zshrc ~/.zshrc
 rm ~/.config/doom/*.el
 ln -s ~/.dotfiles/Doom/*.el ~/.config/doom
 ln -s ~/.dotfiles/Tmux/.tmux.conf ~/.tmux.conf
+ln -s ~/.dotfiles/Kitty/* ~/.config/kitty/
 cd
 ./.config/emacs/bin/doom sync
