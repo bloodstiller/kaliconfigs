@@ -34,4 +34,6 @@
 ;; Nice Scrolling in tables
 (package! phscroll
   :recipe (:host github :repo "misohena/phscroll" :files ("*.el")))
+;; Nice Scrolling in tables
+(package! org-transclusion)
 
