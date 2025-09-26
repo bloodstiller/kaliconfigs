@@ -370,6 +370,8 @@
 ;; Enables Emofis
 (use-package emojify
   :hook (after-init . global-emojify-mode))
+;;;PORT TO MY EMACS!
+
 
 ;; Let normal text wrap but allow horizontal scrolling where needed
 (setq org-startup-truncated nil)
@@ -387,3 +389,48 @@
         :map org-mode-map
         :localleader
         "t h" #'org-phscroll-mode))
+
+;; Expand "<q" (quote), "<s" (src), etc. with SPACE in Org buffers
+(after! org
+  (require 'org-tempo) ;; ensures org-tempo templates like <q, <s, <e, ... exist
+  (defun +my/org-tempo-on-space ()
+    "If point is after an org-tempo tag at BOL like \"<q\" or \"<s\", expand it.
+Otherwise insert a literal space."
+    (interactive)
+    (if (and (derived-mode-p 'org-mode)
+             ;; Check if we're at the end of a tag anywhere on the line
+             (looking-back "<[A-Za-z0-9_-]+" (line-beginning-position)))
+        (org-tempo-complete-tag)
+      (insert " ")))
+  ;; In org-mode, SPACE triggers our helper
+  (define-key org-mode-map (kbd "SPC") #'+my/org-tempo-on-space))
+
+(use-package! org-transclusion
+  :after org
+  :commands (org-transclusion-mode org-transclusion-add
+                                   org-transclusion-remove org-transclusion-refresh
+                                   org-transclusion-open-source)
+  :init
+  ;; Function to insert #+transclude: and prompt for org-roam node
+  (defun my/insert-transclude-with-node ()
+    "Insert #+transclude: and then prompt for an org-roam node to insert."
+    (interactive)
+    (insert "#+transclude: ")
+    (org-roam-node-insert))
+
+  ;; Doom Emacs transclude keybindings as submenu under existing leader t:
+  (map! :map org-mode-map
+        :leader
+        (:prefix ("t" . "toggle")
+                 (:prefix ("t" . "transclude")
+                  :desc "Toggle transclusion mode"       "t" #'org-transclusion-mode
+                  :desc "Add transclusion at point"     "a" #'org-transclusion-add
+                  :desc "Remove transclusion at point"  "r" #'org-transclusion-remove
+                  :desc "Refresh all transclusions"     "R" #'org-transclusion-refresh
+                  :desc "Open transclusion source"      "o" #'org-transclusion-open-source
+                  :desc "Insert transclude with node"   "i" #'my/insert-transclude-with-node
+                  :desc "Sync editing"                  "s" #'org-transclusion-live-sync-start))))
+
+
+;; Doom Emacs keybinding using map! macro:
+(map! :leader "nrt" #'my/insert-transclude-with-node)
