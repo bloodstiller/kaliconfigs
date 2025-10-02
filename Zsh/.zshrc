@@ -286,7 +286,4 @@ update_var() {
           source ~/.zshrc
         }
 
-
-
-eval "$(starship init zsh)"
 eval "$(register-python-argcomplete pip)"
