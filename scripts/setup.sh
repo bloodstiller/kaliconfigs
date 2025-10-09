@@ -35,6 +35,7 @@ sudo apt install -y \
     fonts-firacode \
     python3-argcomplete \
     atuin \
+    flameshot \
     syncthing \
     syncthingtray
 
