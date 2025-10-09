@@ -434,3 +434,9 @@ Otherwise insert a literal space."
 
 ;; Doom Emacs keybinding using map! macro:
 (map! :leader "nrt" #'my/insert-transclude-with-node)
+
+;Back to a simpler time…
+(map! :g "C-s" (lambda () (interactive) (consult-ripgrep "~/Notes")))
+
+;; Search current document
+(map! :after evil :gnvi "C-f" #'consult-line)
