@@ -98,3 +98,5 @@ ln -s ~/.dotfiles/Tmux/.tmux.conf ~/.tmux.conf
 ln -s ~/.dotfiles/Kitty/* ~/.config/kitty/
 cd
 ./.config/emacs/bin/doom sync
+
+echo "Remember to add the shortcuts for flameshot '/bin/sh -c "flameshot gui" > /dev/null &'"
