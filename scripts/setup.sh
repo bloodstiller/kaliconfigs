@@ -39,6 +39,7 @@ sudo apt install -y \
     syncthing \
     syncthingtray
 
+# For ubuntu and remove autuin above
 #snap install atuin
 
 # Install Oh My Zsh without launching Zsh or changing shell automatically
@@ -88,6 +89,7 @@ rm Iosevka.zip CommitMono.zip
 fc-cache -fv
 
 # Configure Dots
+mkdir ~/.config/kitty
 rm ~/.zshrc
 ln -s ~/.dotfiles/Zsh/.zshrc ~/.zshrc
 rm ~/.config/doom/*.el
