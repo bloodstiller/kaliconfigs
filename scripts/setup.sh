@@ -49,6 +49,14 @@ sudo apt install -y \
 #sudo apt update
 #sudo apt install wezterm
 
+#Install openvpn3 
+
+#sudo mkdir -p /etc/apt/keyrings && curl -fsSL https://packages.openvpn.net/packages-repo.gpg | sudo tee /etc/apt/keyrings/openvpn.asc
+#DISTRO=$(lsb_release -c -s)
+#echo "deb [signed-by=/etc/apt/keyrings/openvpn.asc] https://packages.openvpn.net/openvpn3/debian $DISTRO main" | sudo tee /etc/apt/sources.list.d/openvpn-packages.list
+#sudo apt update
+#sudo apt install openvpn3
+
 
 # Install Oh My Zsh without launching Zsh or changing shell automatically
 export RUNZSH=no CHSH=no
@@ -99,6 +107,7 @@ fc-cache -fv
 
 # Configure Dots
 mkdir ~/.config/kitty
+mkdir ~/VMShare
 rm ~/.zshrc
 ln -s ~/.dotfiles/Zsh/.zshrc ~/.zshrc
 rm ~/.config/doom/*.el
