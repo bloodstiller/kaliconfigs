@@ -167,9 +167,6 @@ alias cat='batcat'
 # Alias to run Doom Emacs
 alias doom='~/.emacs.d/bin/doom'
 
-# Alias for running AutoRecon (with sudo) and preserving the $PATH
-alias autorecon='sudo env "PATH=$PATH" autorecon'
-
 
 # URL decode function using Python3
 alias urldecode='python3 -c "import sys, urllib.parse as ul; \
@@ -179,15 +176,8 @@ alias urldecode='python3 -c "import sys, urllib.parse as ul; \
 alias urlencode='python3 -c "import sys, urllib.parse as ul; \
     print (ul.quote_plus(sys.argv[1]))"'
 
-# Aliases for quick access to specific directories
-# Access CPTS course folder
-alias cpts='~/Dropbox/40-49_Career/41-Courses/41.22-CPTS'   
-
 # Set HTB base folder
 alias bx='~/Dropbox/40-49_Career/44-Blog/bloodstiller/content-org/Walkthroughs/HTB/BlogEntriesMade/Alert'  
-
-# BlogFolder
-alias blog='~/Dropbox/40-49_Career/44-Blog/bloodstiller'
 
 # Export the IP address of a target box
 export box="10.129.108.128"
@@ -208,19 +198,16 @@ alias pws='python3 -m http.server 9000'
 # Set up a tunneling interface using ligolo
 alias lgu='sudo ip tuntap add user kali mode tun ligolo && sudo ip link set ligolo up'
 
-# Alias for quick access to the folder of the current exam
-alias cl="~/Dropbox/40-49_Career/41-Courses/41.22-CPTS/Exam/Org"
-
 # Add local bin directory to the system PATH
 export PATH=$PATH:/home/kali/.local/bin
 
 # Export IP address for target environment
-export PH1="10.129.179.113"
-
-export PH2="172.16.139.3"
+export PH1=""
+export PH2=""
 
 # Box Scrtips for THM
-alias nbx="~/.config/scripts/newbox.sh"
+alias nt="~/.dotfiles/scripts/newtest.sh"
+alias nbx="~/Notes/scripts/newbox.sh"
 
 # Launch Bloodhound
 alias bh='docker compose -f ~/.dotfiles/bloodhound/docker-compose.yml up && echo "bh starting"'
