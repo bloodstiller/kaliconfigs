@@ -37,10 +37,15 @@ sudo apt install -y \
     atuin \
     flameshot \
     syncthing \
-    syncthingtray
+    syncthingtray \
+    ffuf \
+    nmap \
+    nikto 
 
 # For ubuntu and remove autuin above
 #snap install atuin
+
+# snap install seclists
 
 # Install wezterm ubuntu
 #curl -fsSL https://apt.fury.io/wez/gpg.key | sudo gpg --yes --dearmor -o /usr/share/keyrings/wezterm-fury.gpg
