@@ -207,7 +207,8 @@ export PH2=""
 
 # Box Scrtips for THM
 alias nt="~/.dotfiles/scripts/newtest.sh"
-alias nbx="~/Notes/scripts/newbox.sh"
+alias nbx="~/.dotfiles/scripts/newbox.sh"
+alias nps="~/.dotfiles/scripts/newportswigger.sh"
 
 # Launch Bloodhound
 alias bh='docker compose -f ~/.dotfiles/bloodhound/docker-compose.yml up && echo "bh starting"'
