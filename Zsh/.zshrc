@@ -167,6 +167,8 @@ alias cat='batcat'
 # Alias to run Doom Emacs
 alias doom='~/.emacs.d/bin/doom'
 
+alias dt='~/.dotfiles'
+alias blog='~/Blog'
 
 # URL decode function using Python3
 alias urldecode='python3 -c "import sys, urllib.parse as ul; \
@@ -177,7 +179,7 @@ alias urlencode='python3 -c "import sys, urllib.parse as ul; \
     print (ul.quote_plus(sys.argv[1]))"'
 
 # Set HTB base folder
-alias bx='~/Dropbox/40-49_Career/44-Blog/bloodstiller/content-org/Walkthroughs/HTB/BlogEntriesMade/Alert'  
+alias bx='/home/kali/Content/Walkthroughs/Boxes/BlogEntriesMade/Baby'  
 
 # Export the IP address of a target box
 export box="10.129.108.128"
@@ -275,3 +277,9 @@ update_var() {
         }
 
 eval "$(register-python-argcomplete pip)"
+
+. "$HOME/.atuin/bin/env"
+
+eval "$(atuin init zsh)"
+
+

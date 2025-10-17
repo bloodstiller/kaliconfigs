@@ -14,6 +14,7 @@
   - [[#fonts--theme][Fonts & Theme:]]
   - [[#bookmarks-and-buffers][BOOKMARKS AND BUFFERS]]
   - [[#org-mode][ORG MODE:]]
+  - [[#markdown][Markdown:]]
   - [[#quality-of-life][Quality Of Life:]]
 - [[#packagesel][packages.el:]]
 - [[#initel][init.el]]
@@ -23,39 +24,34 @@
 :PROPERTIES:
 :ID:       98115602-c008-4e0b-8d95-497de1561a6c
 :END:
+
 - This is my personal Doom Emacs config it is structured as a literate configuration.
 - Inspired by the methodology presented at [[https://leanpub.com/lit-config/read][Literate Configuration]].
 - This approach blends detailed documentation directly with the code, offering clear insights into the purpose and functionality of each configuration snippet, making it both user-friendly and easy to maintain.
 - Great video by DT Tube here on how to write literate configs:
   - https://www.youtube.com/watch?v=eF4cJlBNtdQ&themeRefresh=1
 - /Alot of this is lifted from DT Tube but with my own customization etc./ However please check out his config and videos https://gitlab.com/dwt1/distro.tube
-
 * Doom Main Config:
 :PROPERTIES:
-:header-args: :tangle config.el
-:ID:       3dcb0204-6a78-4288-a1d2-ccd37bb96118
+:ID:       20a5b90c-8c46-4037-bb1e-ee9fefda1e30
+:header-args: emacs-lisp :tangle ~/.dotfiles/Doom/config.el
 :END:
 ** General Settings:
 :PROPERTIES:
-:ID:       475d01fc-e548-4302-ad62-afadbba757c5
-:END:
-*** Fo
-:PROPERTIES:
-:ID:       d0270d28-a9f2-4b3c-a1a8-af5189de4c85
+:ID:       553f0eaf-80e3-4469-935c-e5170383929e
 :END:
 *** User Information:
 :PROPERTIES:
-:ID:       c3b95b23-c870-4d56-8c88-d291d86575df
+:ID:       f90ccfeb-6d1d-4a63-8f3d-5d50eb92c69f
 :END:
 
 #+begin_src emacs-lisp
-
 (setq user-full-name "bloodstiller")
 #+end_src
 
 *** Set line Numbers:
 :PROPERTIES:
-:ID:       ede96043-150a-4324-a75d-2ed8c46e04bc
+:ID:       18a53005-4942-4a48-a723-e2cc16ab8548
 :END:
 #+begin_src emacs-lisp
 ;; This determines the style of line numbers in effect. If set to `nil', line
@@ -64,7 +60,7 @@
 #+end_src
 *** Beacon:
 :PROPERTIES:
-:ID:       f863ec51-a739-4f88-a9f3-3f5dee348230
+:ID:       c2f8ec18-84bb-4079-85a8-17157bb2478b
 :END:
 Never lose your cursor.  When you scroll, your cursor will shine!  This is a global minor-mode. Turn it on everywhere with:
 
@@ -73,7 +69,7 @@ Never lose your cursor.  When you scroll, your cursor will shine!  This is a glo
 #+end_src
 *** Graphics: Pixel-precision scrolling:
 :PROPERTIES:
-:ID:       fe490eed-c742-4470-8446-1ed59cd0677d
+:ID:       9f605124-95d4-4246-88aa-bf1a4bd38edc
 :END:
 #+begin_src emacs-lisp
 (when (version< "29.0.50" emacs-version)
@@ -81,7 +77,19 @@ Never lose your cursor.  When you scroll, your cursor will shine!  This is a glo
 #+end_src
 ** Fonts & Theme:
 :PROPERTIES:
-:ID:       12c9f631-b30d-43ff-b115-5f1601508a8b
+:ID:       d62adafd-65fc-4a25-aad9-9a96ab7d7e82
+:END:
+*** Theme:
+:PROPERTIES:
+:ID:       54cac25a-29c7-4262-b5c9-826b443adc6b
+:END:
+#+begin_src emacs-lisp
+;; Select Doom One Theme
+(setq doom-theme 'doom-one)
+#+end_src
+*** Font:
+:PROPERTIES:
+:ID:       4eb382d0-fdaa-443e-9814-a0934ceb6fb9
 :END:
 Settings related to fonts within Doom Emacs:
 
@@ -90,26 +98,68 @@ Settings related to fonts within Doom Emacs:
   - ‘doom-big-font’ – used in doom-big-font-mode; useful for presentations.
   - ‘font-lock-comment-face’ – for comments.
   - ‘font-lock-keyword-face’ – for keywords with special significance like ‘setq’ in elisp.
-
 #+begin_src emacs-lisp
-(setq doom-theme 'doom-one)
-;;(setq  doom-font (font-spec :family "Iosevka Nerd Font" :size 16)
-(setq  doom-font (font-spec :family "Fira Code Medium" :size 18)
-       doom-variable-pitch-font (font-spec :family "Fira Code Medium")
-       doom-unicode-font (font-spec :family "Fira Code Medium" :size 16))
+(setq  doom-font (font-spec :family "CommitMono Nerd Font" :size 16)
+       doom-variable-pitch-font (font-spec :family "Iosevka Nerd Font")
+       doom-symbol-font (font-spec :family "Symbols Nerd Font Mono" :size 14))
+#+end_src
+*** Line Spacing:
+:PROPERTIES:
+:ID:       23cc5db3-b894-4a0c-95cf-2b281fe02164
+:END:
+Custom line spacing setup
+#+begin_src emacs-lisp
+;; --- Global default line spacing (add 25% of line height) ---
+(setq-default line-spacing 0.40)
+
+;; Reassert in common modes (some major modes set it buffer-locally)
+(defun mdb/line-spacing ()
+  (setq-local line-spacing 0.40))
+(dolist (hook '(text-mode-hook prog-mode-hook conf-mode-hook))
+  (add-hook hook #'mdb/line-spacing))
+
+;; Also reapply when fonts/theme reload (Doom sometimes resets things)
+(add-hook 'after-setting-font-hook #'mdb/line-spacing)
+(add-hook 'doom-load-theme-hook    #'mdb/line-spacing)
 #+end_src
 
 ** BOOKMARKS AND BUFFERS
 :PROPERTIES:
-:ID:       8c972c30-b66c-497d-9794-961140da8120
+:ID:       40af9b48-1c3a-4a6c-a76e-36645ec2c333
 :END:
 Doom Emacs uses 'SPC b' for keybindings related to bookmarks and buffers.
+
+*** Bookmarks
+:PROPERTIES:
+:ID:       71ba80a9-22e3-4934-9706-2aa05e0aadf4
+:END:
+Bookmarks are somewhat like registers in that they record positions you can jump to.  Unlike registers, they have long names, and they persist automatically from one Emacs session to the next. The prototypical use of bookmarks is to record where you were reading in various files.
+
+| COMMAND         | DESCRIPTION                            | KEYBINDING |
+|-----------------+----------------------------------------+------------|
+| list-bookmarks  | _List bookmarks_                         | SPC b L    |
+| bookmark-set    | _Set bookmark_                           | SPC b m    |
+| bookmark-delete | _Delete bookmark_                        | SPC b M    |
+| bookmark-save   | _Save current bookmark to bookmark file_ | SPC b w    |
+
+#+BEGIN_SRC emacs-lisp
+;;Setup Bookmarks
+;;(setq bookmark-default-file "~/.config/doom/bookmarks/")
+
+(map! :leader
+      (:prefix ("b". "buffer")
+       :desc "List bookmarks"                          "L" #'list-bookmarks
+       :desc "Set bookmark"                            "m" #'bookmark-set
+       :desc "Delete bookmark"                         "M" #'bookmark-set
+       :desc "Save current bookmarks to bookmark file" "w" #'bookmark-save))
+#+END_SRC
+
 *** Buffers
 :PROPERTIES:
-:ID:       03d74a33-46d3-475e-afdd-949105202662
+:ID:       db998fe8-01b0-4a9d-95af-b7d05eb9c3f7
 :END:
 Regarding buffers, the text you are editing in Emacs resides in an object called a buffer. Each time you visit a file, a buffer is used to hold the file’s text. Each time you invoke Dired, a buffer is used to hold the directory listing.  Ibuffer is a program that lists all of your Emacs buffers/, allowing you to navigate between them and filter them.
-j
+
 | COMMAND         | DESCRIPTION          | KEYBINDING |
 |-----------------+----------------------+------------|
 | ibuffer         | _Launch ibuffer_       | SPC b i    |
@@ -118,9 +168,39 @@ j
 | previous-buffer | _Goto previous buffer_ | SPC b p    |
 | save-buffer     | _Save current buffer_  | SPC b s    |
 
+**** Keybindings within ibuffer mode:
+:PROPERTIES:
+:ID:       a3d611b3-548c-4c06-bb67-2695b6062e64
+:END:
+| COMMAND                           | DESCRIPTION                            | KEYBINDING |
+|-----------------------------------+----------------------------------------+------------|
+| ibuffer-mark-forward              | _Mark the buffer_                        | m          |
+| ibuffer-unmark-forward            | _Unmark the buffer_                      | u          |
+| ibuffer-do-kill-on-deletion-marks | _Kill the marked buffers_                | x          |
+| ibuffer-filter-by-content         | _Ibuffer filter by content_              | f c        |
+| ibuffer-filter-by-directory       | _Ibuffer filter by directory_            | f d        |
+| ibuffer-filter-by-filename        | _Ibuffer filter by filename (full path)_ | f f        |
+| ibuffer-filter-by-mode            | _Ibuffer filter by mode_                 | f m        |
+| ibuffer-filter-by-name            | _Ibuffer filter by name_                 | f n        |
+| ibuffer-filter-disable            | _Disable ibuffer filter_                 | f x        |
+| ibuffer-do-kill-lines             | _Hide marked buffers_                    | g h        |
+| ibuffer-update                    | _Restore hidden buffers_                 | g H        |
+
+#+begin_src emacs-lisp
+(evil-define-key 'normal ibuffer-mode-map
+  (kbd "f c") 'ibuffer-filter-by-content
+  (kbd "f d") 'ibuffer-filter-by-directory
+  (kbd "f f") 'ibuffer-filter-by-filename
+  (kbd "f m") 'ibuffer-filter-by-mode
+  (kbd "f n") 'ibuffer-filter-by-name
+  (kbd "f x") 'ibuffer-filter-disable
+  (kbd "g h") 'ibuffer-do-kill-lines
+  (kbd "g H") 'ibuffer-update)
+#+end_src
+
 *** Global Auto Revert
 :PROPERTIES:
-:ID:       086137eb-23cb-447a-ac0a-591e17505aaa
+:ID:       f2f913de-6630-41fa-98a6-161c56929db5
 :END:
 A buffer can get out of sync with respect to its visited file on disk if that file is changed by another program. To keep it up to date, you can enable Auto Revert mode by typing M-x auto-revert-mode, or you can set it to be turned on globally with 'global-auto-revert-mode'.  I have also turned on Global Auto Revert on non-file buffers, which is especially useful for 'dired' buffers.
 
@@ -135,6 +215,21 @@ A buffer can get out of sync with respect to its visited file on disk if that fi
 :ID:       e29c8aff-47e4-4b4d-b794-b2cd4726466d
 :END:
 - This is where the vast majority of my customization lies. As I live mostly in ORG Mode.
+*** ORG - Org Directory:
+:PROPERTIES:
+:ID:       76e97e74-4782-42b9-9d0b-070f7917ffab
+:END:
+- If you use `org' and don't want your org files in the default location below,
+  - change `org-directory'. It must be set before org loads!
+#+begin_src emacs-lisp
+(setq org-directory "/home/kali/org/01-Emacs/01.02-OrgGtd/")
+
+(setq org-agenda-files '("/home/kali/org/01-Emacs/01.02-OrgGtd/inbox.org"
+                         "/home/kali/org/01-Emacs/01.02-OrgGtd/org-gtd-tasks.org"
+                         "/home/kali/org/01-Emacs/01.02-OrgGtd/Goals.org"
+                         "/home/kali/org/01-Emacs/01.02-OrgGtd/gtd_archive_2023"))
+#+end_src
+
 *** ORG - Todo States:
 :PROPERTIES:
 :ID:       f0b68567-17a7-4ff9-9f4e-694a7be21747
@@ -143,68 +238,235 @@ Custom TODO states & Tags
 #+begin_src emacs-lisp
 ;; CUSTOM org TODO states
 (after! org
-(setq org-todo-keywords
-      '((sequence "TODO(t)"
-         "NEXT(n)"
-         "PLANNING(p)"
-         "IN-PROGRESS(i)"
-         "WEEKLY-GOAL(m)"
-         "GOAL(g)"
-         "WAITING(w)"
-         "WORK(b)"
-         "HABIT(h)"
-         "PROJECT(P)"
-         "CALENDAR(c)"
-         "NOTE(N)"
-         "AREA(a)"
-         "|"
-         "DONE(d!)"
-         "COMPLETE(C!)"
-         "HOLD(h)"
-         "SOMEDAY(s)"
-         "RABBITHOLE!(R)")
-        )))
+  (setq org-todo-keywords
+        '((sequence "TODO(t)"
+           "NEXT(n)"
+           "PLANNING(p)"
+           "IN-PROGRESS(i)"
+           "WEEKLY-GOAL(m)"
+           "GOAL(g)"
+           "WAITING(w)"
+           "WORK(b)"
+           "HABIT(h)"
+           "PROJECT(P)"
+           "CALENDAR(c)"
+           "NOTE(N)"
+           "AREA(a)"
+           "|"
+           "DONE(d!)"
+           "COMPLETE(C!)"
+           "HOLD(h)"
+           "SOMEDAY(s)"
+           "RABBITHOLE!(R)")
+          )))
 
 ;; CUSTOM TODO colors
 (after! org
-(setq org-todo-keyword-faces
-      '(
-        ("TODO" . (:foreground "#ffdd83" :weight bold))
-        ("NEXT" . (:foreground "light coral" :weight bold))
-        ("PLANNING" . (:foreground "#bd7091" :weight bold))
-        ("IN-PROGRESS" . (:foreground "#ffb86c" :weight bold))
-        ("WEEKLY-GOAL" . (:foreground "light sea green" :weight bold))
-        ("GOAL" . (:foreground "LimeGreen" :weight bold))
-        ("WAITING" . (:foreground "LightPink1" :weight bold))
-        ("WORK" . (:foreground "Cyan" :weight bold))
-        ("HABIT" . (:foreground "RoyalBlue3" :weight bold))
-        ("PROJECT" . (:foreground "SlateBlue1" :weight bold))
-        ("CALENDAR" . (:foreground "chocolate" :weight bold))
-        ("NOTE" . (:foreground "#7d9dc0" :background "#ffb86c" :weight bold))
-        ("AREA" . (:foreground "#7d9dc0" :weight bold))
+  (setq org-todo-keyword-faces
+        '(
+          ("TODO" . (:foreground "#ffdd83" :weight bold))
+          ("NEXT" . (:foreground "light coral" :weight bold))
+          ("PLANNING" . (:foreground "#bd7091" :weight bold))
+          ("IN-PROGRESS" . (:foreground "#ffb86c" :weight bold))
+          ("WEEKLY-GOAL" . (:foreground "light sea green" :weight bold))
+          ("GOAL" . (:foreground "LimeGreen" :weight bold))
+          ("WAITING" . (:foreground "LightPink1" :weight bold))
+          ("WORK" . (:foreground "Cyan" :weight bold))
+          ("HABIT" . (:foreground "RoyalBlue3" :weight bold))
+          ("PROJECT" . (:foreground "SlateBlue1" :weight bold))
+          ("CALENDAR" . (:foreground "chocolate" :weight bold))
+          ("NOTE" . (:foreground "#7d9dc0" :background "#ffb86c" :weight bold))
+          ("AREA" . (:foreground "#7d9dc0" :weight bold))
 
-        ("DONE" . (:foreground "white" :weight bold))
-        ("COMPLETE" . (:strikethrough t :foreground "light gray" :weight bold))
-        ("HOLD" . (:foreground "Grey46" :weight bold))
-        ("SOMEDAY" . (:foreground "cyan1" :weight bold))
-        )))
+          ("DONE" . (:foreground "white" :weight bold))
+          ("COMPLETE" . (:strikethrough t :foreground "light gray" :weight bold))
+          ("HOLD" . (:foreground "Grey46" :weight bold))
+          ("SOMEDAY" . (:foreground "cyan1" :weight bold))
+          )))
 
-;; Custom Tag colors
-(setq org-tag-faces
-      '(
-        ("planning"  . (:foreground "mediumPurple1" :weight bold))
-        ("@research"   . (:foreground "royalblue1"    :weight bold))
-        ("QA"        . (:foreground "sienna"        :weight bold))
-        ("CRITICAL"  . (:foreground "red1"          :weight bold))
-        ("HABIT"  . (:foreground "pink"          :weight bold))
-        )
-      )
+#+end_src
+
+*** ORG - Shortcuts to Open Files:
+:PROPERTIES:
+:ID:       745563d5-468d-4272-a8d3-f38418349513
+:END:
+
+Keybindings to open files that I work with all the time using the find-file command, which is the interactive file search that opens with ~'C-x C-f'~ in GNU Emacs or ~'SPC f f'~ in Doom Emacs.
+
+These keybindings use find-file non-interactively since we specify exactly what file to open.  The format I use for these bindings is ~'SPC ='~ plus ~'key'~ since Doom Emacs does not use ~'SPC ='~.
+
+_NOTE_: Doom Emacs already has a function 'doom/open-private-config' set to the keybinding 'SPC f p'.  This allows you to open any file in your HOME/.config/doom directory, so the following keybindings that I created are not really necessary, but I created this section as an example of how to to create bindings that open specific files on your system.
+
+| **PATH TO FILE**                                        | **DESCRIPTION**                    | **KEYBINDING** |
+|-------------------------------------------------------+----------------------------------+--------------|
+| ~/Dropbox/Org/01-Emacs/01.02-OrgGtd/org-gtd-tasks.org | Opens TODO file                  | SPC = t      |
+| ~/Dropbox/Org/01-Emacs/01.02-OrgGtd/Goals.org         | Edit Goals file                  | SPC = g      |
+| ~/Dropbox/Org/01-Emacs/01.02-OrgGtd/inbox.org         | Edit inbox file                  | SPC = i      |
+|-------------------------------------------------------+----------------------------------+--------------|
+| ~/.config/doom/README.org                             | Edit Doom config.el              | SPC = d c    |
+|-------------------------------------------------------+----------------------------------+--------------|
+| ~/Dropbox/40-49_Career/44-Blog/                       | Open Blog Root Folder            | SPC = b r    |
+| ~/Dropbox/40-49_Career/44-Blog/index.org              | Edit Index.org file              | SPC = b i    |
+| ~/Dropbox/40-49_Career/44-Blog/Articles/Blog.org      | Edit Blog.org file               | SPC = b b    |
+| ~/Dropbox/40-49_Career/44-Blog/Emacs.org              | Edit Emacs.org file              | SPC = b e    |
+| ~/Dropbox/40-49_Career/44-Blog/Infosec.org            | Edit Infosec.org file            | SPC = b I    |
+|-------------------------------------------------------+----------------------------------+--------------|
+| ~/Dropbox/00Projects/                                 | Open Projects Folder             | SPC = p p    |
+| ~/Dropbox/01-09_System/                               | Open Systems Folder              | SPC = p 0    |
+| ~/Dropbox/10-19_Health/                               | Open Health Folder               | SPC = p 1    |
+| ~/Dropbox/20-29_Home/                                 | Open Home Folder                 | SPC = p 2    |
+| ~/Dropbox/30-39_Relationships/                        | Open Relationships Folder        | SPC = p 3    |
+| ~/Dropbox/40-49_Career/                               | Open Career Folder               | SPC = p 4    |
+| ~/Dropbox/50-59_PersonalDevelopment/                  | Open Personal Development Folder | SPC = p 5    |
+| ~/Dropbox/60-69_Work/                                 | Open Work Folder                 | SPC = p 6    |
+| ~/Dropbox/70-79_Finances/                             | Open Finances Folder             | SPC = p 7    |
+| ~/Dropbox/80-89_Hobbies/                              | Open Hobbies Folder              | SPC = p 8    |
+| ~/Dropbox/90-99_Repos/                                | Open Repos Folder                | SPC = p 9    |
+|-------------------------------------------------------+----------------------------------+--------------|
+
+
+#+begin_src emacs-lisp
+(map! :leader
+      (:prefix ("=" . "open file")
+       :desc "Edit TODO File" "t" #'(lambda () (interactive) (find-file "/home/kali/org/01-Emacs/01.02-OrgGtd/org-gtd-tasks.org"))
+       :desc "Edit Goals File"   "g" #'(lambda () (interactive) (find-file "/home/kali/org/01-Emacs/01.02-OrgGtd/Goals.org"))
+       :desc "Edit inbox File" "i" #'(lambda () (interactive) (find-file "/home/kali/org/01-Emacs/01.02-OrgGtd/inbox.org"))))
+
+(map! :leader
+      (:prefix ("= d" . "Open Doom Config")
+       :desc "Edit Doom config.el"   "c" #'(lambda () (interactive) (find-file "/home/kali/.dotfiles/packages/doom/README.org"))))
+
+(map! :leader
+      (:prefix ("= b" . "Open Blog Files")
+       :desc "Open Blog Root Folder"   "r" #'(lambda () (interactive) (find-file "~/.config/hugo/bloodstiller"))
+       :desc "Edit Index.org file"   "i" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/40-49_Career/44-Blog/index.org"))
+       :desc "Edit Blog.org file"   "b" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/40-49_Career/44-Blog/Articles/Blog.org"))
+       :desc "Edit Emacs.org file"   "e" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/40-49_Career/44-Blog/Emacs.org"))
+       :desc "Edit Infosec.org file"   "I" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/40-49_Career/44-Blog/Infosec.org"))))
+(map! :leader
+      (:prefix ("= p" . "Open areas/Projects")
+       :desc "Open Projects Folder" "p" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/00Projects"))
+       :desc "Open Systems Folder" "0" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/01-09_System"))
+       :desc "Open Health Folder" "1" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/10-19_Health"))
+       :desc "Open Home Folder" "2" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/20-29_Home"))
+       :desc "Open Relationships Folder" "3" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/30-39_Relationships"))
+       :desc "Open Career Folder" "4" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/40-49_Career"))
+       :desc "Open Personal Development Folder" "5" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/50-59_PersonalDevelopment"))
+       :desc "Open Work Folder" "6" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/60-69_Work"))
+       :desc "Open Finances Folder" "7" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/70-79_Finances"))
+       :desc "Open Hobbies Folder" "8" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/80-89_Hobbies"))
+       :desc "Open Repos Folder" "9" #'(lambda () (interactive) (find-file "/home/kali/Dropbox/90-99_Repos"))))
+
+#+end_src
+*** ORG - Capture Templates:
+:PROPERTIES:
+:ID:       cd327890-2976-4665-a569-0c35b85a9e66
+:END:
+| **PATH TO FILE**                                                                         | **DESCRIPTION**              | **KEYBINDING** |
+|----------------------------------------------------------------------------------------+----------------------------+--------------|
+| ~/Dropbox/Org/01-Emacs/01.02-OrgGtd/inbox.org                              | Add to inbox               | i            |
+| ~/Dropbox/Org/01-Emacs/01.01-OrgMode/ScratchPad.org                        | Personal Notes/Scratch Pad | n            |
+| ~/Dropbox/Org/01-Emacs/01.02-OrgGtd/inbox.org                              | Work-Todo                  | w            |
+| ~/Dropbox/Org/01-Emacs/01.02-OrgGtd/inbox.org                              | Work-Note                  | W            |
+| ~/Dropbox/50-59_PersonalDevelopment/51-Diaries/51.04-Achievments_Diary/ACHIEVMENTS.org | Achievements               | a            |
+| ~/Dropbox/50-59_PersonalDevelopment/51-Diaries/51.03-Gratititude_Diary/GRATITUDE.org   | Gratitude Diary            | g            |
+| ~/Dropbox/01-09_System/01-Emacs/01.02-OrgGtd/inbox.org                                 | Links                      | l            |
+| ~/Dropbox/50-59_PersonalDevelopment/52-Reviews/52.02 Weekly Reviews/WeeklyReviews.org  | Weekly Reviews             | R            |
+|----------------------------------------------------------------------------------------+----------------------------+--------------|
+
+#+begin_src emacs-lisp
+
+;;Org capture templates;
+(after! org
+  (setq org-capture-templates
+        '(
+          ;; Add to inbox
+          ("i" "inbox"
+           entry (file+headline "/home/kali/org/01-Emacs/01.02-OrgGtd/inbox.org" "inbox")
+           "* TODO %?"
+           :empty-lines 0)
+          ;; Add notes to inbox:
+          ("n" "Personal Notes/Scatch Pad"
+           entry (file+headline "/home/kali/org/01-Emacs/01.02-OrgGtd/ScratchPad.org" "Personal Notes")
+           "** %?"
+           :empty-lines 0)
+          ("w" "Work-Todo" entry (file "/home/kali/WorkTodo/WorkTodo.org")
+           "* WORK %?"
+           :empty-lines 1)
+          ;; To create work notes
+          ("W" "Work-Note" entry (file "/home/kali/WorkTodo/WorkTodo.org")
+           "* NOTE %?"
+           :empty-lines 0)
+          ;; To create achievments todos
+          ("a" "Achievments"
+           entry (file+datetree "/home/kali/Dropbox/50-59_PersonalDevelopment/51-Diaries/51.04-Achievments_Diary/ACHIEVMENTS.org" "Achievments")
+           "* %?"
+           :empty-lines 0)
+          ;; Add to Gratitude Diary
+          ("g" "Gratidude Diary"
+           entry (file+datetree "/home/kali/Dropbox/50-59_PersonalDevelopment/51-Diaries/51.03-Gratititude_Diary/GRATITUDE.org" "Gratitude Diary")
+           "* %?"
+           :empty-lines 0)
+
+;; Weekly Reviews
+("R" "Weekly Review"
+ entry (file+datetree "/home/kali/Dropbox/50-59_PersonalDevelopment/52-Reviews/52.02 Weekly Reviews/WeeklyReviews.org" "Weekly Reviews")
+"* Week of %U
+,** Accomplishments
+,*** What did I complete this week?
+-
+,*** What am I most proud of?
+-
+,*** What progress did I make on my key goals?
+-
+
+,** Reflection
+,*** What went well this week?
+-
+,*** What challenges did I face?
+-
+,*** What did I learn?
+-
+
+,** Wellbeing
+,*** How is my energy level?
+-
+,*** What did I do for self-care?
+-
+,*** How balanced did my week feel?
+-
+
+,** Relationships
+,*** Who did I connect with this week?
+-
+,*** How did I support others?
+-
+,*** Who should I reach out to next week?
+-
+
+,** Planning Ahead
+,*** What are my top priorities for next week?
+-
+,*** What commitments do I have?
+-
+,*** What do I need to do differently?
+-
+
+,** Gratitude
+,*** Three things I'm grateful for:
+1.
+2.
+3."
+ :empty-lines 0)
+       )))
 #+end_src
 
 *** ORG - CRYPT Setup:
 :PROPERTIES:
 :ID:       0e74d2c4-a7b1-4469-9bee-10ae9613bec9
 :END:
+ORG CRYPT TAG Setup for inline encryption
+If I place "crypt" tag in any entry it will encrypt it.
 
 #+begin_src emacs-lisp
 ;;;;;;;;;;;;;;;;;;;;;ORG CRYPT
@@ -228,83 +490,95 @@ Custom TODO states & Tags
 :END:
 
 #+begin_src emacs-lisp
-
 ;; Org super agenda setup:
- (use-package! org-super-agenda
-   :after org-agenda
-   :init
-   (setq org-agenda-skip-scheduled-if-done t
-       org-agenda-skip-deadline-if-done t
-       org-agenda-include-deadlines t
-       org-agenda-start-day nil ;; i.e. today
-       org-agenda-span 1
-       org-agenda-start-on-weekday nil)
-   (setq org-agenda-custom-commands
-         '(("c" "Super view"
-                      ((agenda "" ((org-agenda-span 'day)
-                       (org-super-agenda-groups
-                        '((:name "⏰⏰⏰⏰⏰ --- Today --- ⏰⏰⏰⏰⏰"
-                           :discard (:todo "DONE")
-                           :discard (:tag "habit")
-                           :time-grid t
-                           :date today
-                           :todo "TODAY"
-                           :scheduled today
-                           :discard (:anything)
-                           :order 1)))))
-                       (alltodo "" ((org-agenda-overriding-header "CURRENT STATUS")
-                                    (org-agenda-prefix-format "  %t  %s")
-                          (org-super-agenda-groups
-                           '((:log t)
-                             (:name " 🚧🚧🚧 --- ACTIVE PROJECT(s) --- 🚧🚧🚧 "
-                              :todo "PROJECT"
-                              :order 6
-                              :transformer (--> it
-                                   (upcase it)
-                                   (propertize it 'face '(:foreground "SlateBlue1"))))
-                             (:name "〰️〰️〰 --- Currently Working On --- 〰〰〰"
-                                    :todo "IN-PROGRESS"
-                                    :order 4)
-                             (:name "❗❗❗ --- Important --- ❗❗❗"
-                                    :date today
-                                    :discard (:todo "DONE")
-                                    :priority "A"
-                                    :order 10)
-                             (:name "✅✅✅ --- GOAL --- ✅✅✅"
-                                    :todo "GOAL"
-                                    :order 2
-                                    :transformer (--> it
-                                         (upcase it)
-                                         (propertize it 'face '(:foreground "LimeGreen"))))
-                             (:name "✅✅✅ --- WEEKLY-GOALS --- ✅✅✅"
-                                    :todo "WEEKLY-GOAL"
-                                    :order 3
-                                    :transformer (--> it
-                                         (upcase it)
-                                         (propertize it 'face '(:foreground "light sea green"))))
-                             (:name "❌⚠❌ --- Overdue! --- ❌⚠❌"
-                                    :discard (:todo "DONE")
-                                    :deadline past
-                                    :scheduled past
-                                    :transformer (--> it
-                                         (upcase it)
-                                         (propertize it 'face '(:foreground "red")))
-                                    :order 5)
-                             (:name "🇧🇧🇧 --- WORK --- 🇧🇧🇧"
-                                    :and (:tag "WORK" :todo "WORK")
-                                    :order 9)
-                             (:name "✔✔✔ --- HABIT --- ✔✔✔"
-                                    :and (:scheduled today :tag "habit")
-                                    :transformer (--> it
-                                         (upcase it)
-                                         (propertize it 'face '(:foreground "royalblue1")))
-                                    :order 20)
+(use-package! org-super-agenda
+  :after org-agenda
+  :init
+  (setq org-agenda-skip-scheduled-if-done t
+        org-agenda-skip-deadline-if-done t
+        org-agenda-include-deadlines t
+        org-agenda-start-day nil ;; i.e. today
+        org-agenda-span 1
+        org-agenda-start-on-weekday nil)
+  (setq org-agenda-custom-commands
+        '(("c" "Super view"
+           ((agenda "" ((org-agenda-span 'day)
+                        (org-super-agenda-groups
+                         '((:name "⏰⏰⏰⏰⏰ --- Today --- ⏰⏰⏰⏰⏰"
+                            :discard (:todo "DONE")
+                            :discard (:tag "habit")
+                            :time-grid t
+                            :date today
+                            :todo "TODAY"
+                            :scheduled today
+                            :discard (:anything)
+                            :order 1)))))
+            (alltodo "" ((org-agenda-overriding-header "CURRENT STATUS")
+                         (org-agenda-prefix-format "  %t  %s")
+                         (org-super-agenda-groups
+                          '((:log t)
+                            (:name " 🚧🚧🚧 --- ACTIVE PROJECT(s) --- 🚧🚧🚧 "
+                             :todo "PROJECT"
+                             :order 6
+                             :transformer (--> it
+                                               (upcase it)
+                                               (propertize it 'face '(:foreground "SlateBlue1"))))
+                            (:name "〰️〰️〰 --- Currently Working On --- 〰〰〰"
+                             :todo "IN-PROGRESS"
+                             :order 4)
+                            (:name "❗❗❗ --- Important --- ❗❗❗"
+                             :date today
+                             :discard (:todo "DONE")
+                             :priority "A"
+                             :order 10)
+                            (:name "✅✅✅ --- GOAL --- ✅✅✅"
+                             :todo "GOAL"
+                             :order 2
+                             :transformer (--> it
+                                               (upcase it)
+                                               (propertize it 'face '(:foreground "LimeGreen"))))
+                            (:name "✅✅✅ --- WEEKLY-GOALS --- ✅✅✅"
+                             :todo "WEEKLY-GOAL"
+                             :order 3
+                             :transformer (--> it
+                                               (upcase it)
+                                               (propertize it 'face '(:foreground "light sea green"))))
+                            (:name "❌⚠❌ --- Overdue! --- ❌⚠❌"
+                             :discard (:todo "DONE")
+                             :deadline past
+                             :scheduled past
+                             :transformer (--> it
+                                               (upcase it)
+                                               (propertize it 'face '(:foreground "red")))
+                             :order 5)
+                            (:name "🇧🇧🇧 --- WORK --- 🇧🇧🇧"
+                             :and (:tag "WORK" :todo "WORK")
+                             :order 9)
+                            (:name "✔✔✔ --- HABIT --- ✔✔✔"
+                             :and (:scheduled today :tag "habit")
+                             :transformer (--> it
+                                               (upcase it)
+                                               (propertize it 'face '(:foreground "royalblue1")))
+                             :order 20)
                             (:discard (:anything))))))))))
-   :config
-   (org-super-agenda-mode))
+  (org-super-agenda-mode))
 
 #+end_src
 
+*** ORG - Journal:
+:PROPERTIES:
+:ID:       c0c33dfb-75ff-42bf-8a6d-a1d77790f6c8
+:END:
+#+begin_src emacs-lisp
+
+;; Journal Config
+(setq org-journal-dir "/home/kali/Dropbox/50-59_PersonalDevelopment/51-Diaries/51.01-Daily_Diaries"
+      org-journal-date-prefix "#+TITLE: "
+      org-journal-time-prefix "* "
+      org-journal-date-format "%a, %d-%m-%Y"
+      org-journal-file-format "%d-%m-%Y-jrnl.org")
+
+#+end_src
 *** ORG - Center Screen Shortcut:
 :PROPERTIES:
 :ID:       885acf83-e163-4c82-a4e4-3936f5c6634f
@@ -335,7 +609,7 @@ Custom TODO states & Tags
 - This still does not work (unsure why).
 #+begin_src emacs-lisp
 (require 'org-download)
-(setq-default org-download-image-dir "~/Dropbox/screenshots/")
+(setq-default org-download-image-dir "/home/kali/screenshots/")
 ;;Allows dropping to dir-ed
 (add-hook 'dired-mode-hook 'org-download-enable)
 
@@ -347,7 +621,7 @@ Custom TODO states & Tags
 :END:
 - Actually Set ATTACH directory where images are stored
 #+begin_src emacs-lisp
-(setq org-attach-directory "~/Dropbox/screenshots/")
+(setq org-attach-id-dir "/home/kali/screenshots/")
 #+end_src
 
 *** ORG - Auto Tangle:
@@ -394,6 +668,7 @@ Custom TODO states & Tags
 (add-hook 'org-mode-hook
           (lambda ()
             (add-hook 'before-save-hook 'my/org-add-ids-to-headlines-in-file nil 'local)))
+
 #+end_src
 
 *** ORG - Cosmetics:
@@ -426,21 +701,21 @@ Custom TODO states & Tags
 
 #+end_src
 
-**** Cosmetics - Colour Configuration:
+**** Cosmetics - Color Configuration:
 :PROPERTIES:
 :ID:       f3932cf6-e0f3-49e7-ab03-dc105a59ed6c
 :END:
 #+begin_src emacs-lisp
 
+;;Customize ORG higlighting
+;; this controls the color of bold, italic, underline, verbatim, strikethrough
 (after! org
-(setq org-emphasis-alist
-  '(("*" (underline :weight black :foreground "#EB00E4" ))
-   ;; ("/" (:weight black :background "#745B00" :foreground "#FF3D2B" ))
-    ("_" (:weight black :foreground "#79c6ff" ))
-    ("=" (underline :weight black :foreground "#b18c00" ))
-    ("~" (:foreground "#6BB86B" ))
-    ("+" (underline bold :weight italic :foreground "#FF3D2B" )))))
-
+  (setq org-emphasis-alist
+        '(("*" (:weight black :foreground "#DFDFDF"))   ;; off-white (subtle)
+          ("_" (:weight black :foreground "#51afef"))   ;; blue
+          ("=" (underline :weight black :foreground "#ECBE7B")) ;; yellow
+          ("~" (:foreground "#c678dd"))                 ;; green
+          ("+" (underline bold :weight italic :foreground "#ff6c6b"))))) ;; red (muted)
 #+end_src
 
 **** Cosmetics - Headline Bullets and Folds:
@@ -462,6 +737,7 @@ Custom TODO states & Tags
                                         (?- . ?•)))
 
 #+end_src
+
 **** Cosmetics - Dropdown Icon:
 :PROPERTIES:
 :ID:       e52b4479-8c54-4516-92a4-71d3b3ce6a3b
@@ -506,6 +782,28 @@ Custom TODO states & Tags
 (setq org-startup-indented t)
 #+end_src
 
+**** Cosmetics - Easily Scroll Tables Horizontally:
+:PROPERTIES:
+:ID:       784ecdf5-afa9-4241-b9e5-a94964a56304
+:END:
+#+begin_src emacs-lisp
+;; Let normal text wrap but allow horizontal scrolling where needed
+(setq org-startup-truncated nil)
+
+(use-package! phscroll
+  :after org
+  :config
+  ;; Load the Org integration
+  (require 'org-phscroll)
+  ;; Turn it on automatically in Org buffers
+  (add-hook 'org-mode-hook #'org-phscroll-mode)
+
+  ;; Optional: a convenient localleader toggle
+  (map! :after org
+        :map org-mode-map
+        :localleader
+        "t h" #'org-phscroll-mode))
+#+end_src
 *** ORG - ROAM:
 :PROPERTIES:
 :ID:       d2fc4b3c-393e-4a18-a03c-2cf3dcd7c11d
@@ -516,9 +814,9 @@ Custom TODO states & Tags
 :END:
 - Set Roam Main Dir
 #+begin_src emacs-lisp
+;; Set these *before* loading org-roam
 (require 'org-roam)
-(setq org-roam-directory "~/Dropbox")
-
+(setq org-roam-directory "/mnt/hgfs/Notes")
 #+end_src
 
 **** Roam - (make git ignored files in subdirectories still searchable)
@@ -531,82 +829,79 @@ Custom TODO states & Tags
   (setq org-roam-list-files-commands '(find fd fdfind rg)))
 
 #+end_src
+
+/home/kali/.dotfiles/nix/packages/doom
 **** Roam - Capture Templates:
 :PROPERTIES:
 :ID:       0b82e2bd-d707-4757-97bf-8c912fce2043
 :END:
 | **Path To Template**                              | **Description** | **Keybinding** |
 |-------------------------------------------------+---------------+--------------|
-| ~/.config/orgTemplates/Application.org          | Application   | A            |
-| ~/.config/orgTemplates/AttackTemplate.org       | Attack Type   | a            |
-| ~/.config/orgTemplates/BoxTemplate.org          | Box           | b            |
-| ~/.config/orgTemplates/CPTSSection.org          | CPTS Module   | c            |
-| ~/.config/orgTemplates/DailyReview.org          | Daily Review  | d            |
-| ~/.config/orgTemplates/Pentest.org              | New Pentest   | p            |
-| ~/.config/orgTemplates/ProjectStartTemplate.org | Start Project | n            |
-| ~/.config/orgTemplates/ProjectEndTemplate.org   | End Project   | N            |
-| ~/.config/orgTemplates/ServiceTemplate.org      | Service       | s            |
-| ~/.config/orgTemplates/ToolTemplate.org         | Tool          | t            |
+| /home/kali/.dotfiles/nix/packages/doom/orgTemplates/Applicatio.org           | Application   | A            |
+| /home/kali/.dotfiles/nix/packages/doom/orgTemplates/AttackTemplate.org       | Attack Type   | a            |
+| /home/kali/.dotfiles/nix/packages/doom/orgTemplates/BoxTemplate.org          | Box           | b            |
+| /home/kali/.dotfiles/nix/packages/doom/orgTemplates/CPTSSection.org          | CPTS Module   | c            |
+| /home/kali/.dotfiles/nix/packages/doom/orgTemplates/DailyReview.org          | Daily Review  | d            |
+| /home/kali/.dotfiles/nix/packages/doom/orgTemplates/Pentest.org              | New Pentest   | p            |
+| /home/kali/.dotfiles/nix/packages/doom/orgTemplates/ProjectStartTemplate.org | Start Project | n            |
+| /home/kali/.dotfiles/nix/packages/doom/orgTemplates/ProjectEndTemplate.org   | End Project   | N            |
+| /home/kali/.dotfiles/nix/packages/doom/orgTemplates/ServiceTemplate.org      | Service       | s            |
+| /home/kali/.dotfiles/nix/packages/doom/orgTemplates/ToolTemplate.org         | Tool          | t            |
 |-------------------------------------------------+---------------+--------------|
 
 #+begin_src emacs-lisp
 ;Roam - Capture Templates:
 (setq org-roam-capture-templates
-'(("d" "default" plain
-      "%?"
-      :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-      :unnarrowed t)
+      '(("d" "default" plain
+         "%?"
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
 
- ("A" "Application" plain
-  (file "~/.config/orgTemplates/Application.org")
-  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-  :unnarrowed t)
+        ("A" "Application" plain
+         (file "~/.config/orgTemplates/Application.org")
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
 
- ("a" "Attack Type" plain
-  (file "~/.config/orgTemplates/AttackTemplate.org")
-  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-  :unnarrowed t)
+        ("a" "Attack Type" plain
+         (file "~/.config/orgTemplates/AttackTemplate.org")
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
 
- ("b" "Box" plain
-  (file "~/.config/orgTemplates/BoxTemplate.org")
-  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-  :unnarrowed t)
+        ("b" "Box" plain
+         (file "~/.config/orgTemplates/BoxTemplate.org")
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
 
- ("c" "CPTS Module" plain
-  (file "~/.config/orgTemplates/CPTSSection.org")
-  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-  :unnarrowed t)
+        ("c" "CPTS Module" plain
+         (file "~/.config/orgTemplates/CPTSSection.org")
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
 
- ("d" "Daily Review" plain
-  (file "~/.config/orgTemplates/DailyReview.org")
-  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-  :unnarrowed t)
-
-  ("p" "Pentest" plain
-  (file "~/.config/orgTemplates/Pentest.org")
-  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-  :unnarrowed t)
+        ("p" "Pentest" plain
+         (file "~/.config/orgTemplates/Pentest.org")
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
 
 
- ("n" "Start Project" plain
-  (file "~/.config/orgTemplates/ProjectStartTemplate.org")
-  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-  :unnarrowed t)
+        ("n" "Start Project" plain
+         (file "~/.config/orgTemplates/ProjectStartTemplate.org")
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
 
- ("N" "End Project" plain
-  (file "~/.config/orgTemplates/ProjectEndTemplate.org")
-  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-  :unnarrowed t)
+        ("N" "End Project" plain
+         (file "~/.config/orgTemplates/ProjectEndTemplate.org")
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
 
-  ("s" "Service" plain
-  (file "~/.config/orgTemplates/ServiceTemplate.org")
-  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-  :unnarrowed t)
+        ("s" "Service" plain
+         (file "~/.config/orgTemplates/ServiceTemplate.org")
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
 
- ("t" "Tool" plain
-  (file "~/.config/orgTemplates/ToolTemplate.org")
-  :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-  :unnarrowed t)))
+        ("t" "Tool" plain
+         (file "~/.config/orgTemplates/ToolTemplate.org")
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)))
 #+end_src
 
 **** Roam - Render Large Files Faster:
@@ -631,7 +926,7 @@ Custom TODO states & Tags
 (use-package ox-hugo
   :after org
   :config
-  (setq org-hugo-base-dir "~/Dropbox/40-49_Career/44-Blog/bloodstiller")
+  (setq org-hugo-base-dir "/home/kali/Blog/bloodstiller")
 
   (defun my/ensure-hugo-title (file)
     "Ensure the file has a #+title: keyword, adding one based on the filename if missing."
@@ -642,25 +937,24 @@ Custom TODO states & Tags
         (insert (format "#+title: %s\n\n"
                         (file-name-base (file-name-nondirectory file))))
         (save-buffer))
-      (current-buffer)))
+      (current-buffer))))
 
-  (defun my/get-hugo-section (file)
-    "Get the Hugo section for the file based on its front matter."
-    (with-current-buffer (find-file-noselect file)
-      (goto-char (point-min))
-      (if (re-search-forward "^#\\+hugo_section:\\s-*\\(.*\\)$" nil t)
-          (match-string-no-properties 1)
-        "posts")))  ; default to "posts" if no specific section is found
+(defun my/get-hugo-section (file)
+  "Get the Hugo section for the file based on its front matter."
+  (with-current-buffer (find-file-noselect file)
+    (goto-char (point-min))
+    (if (re-search-forward "^#\\+hugo_section:\\s-*\\(.*\\)$" nil t)
+        (match-string-no-properties 1)
+      "posts")))  ; default to "posts" if no specific section is found
 
-  (defun my/org-roam-link-to-hugo-link (link desc)
-    "Convert an Org-roam link to a Hugo internal link or plain text if file is missing."
-    (let* ((id (org-element-property :path link))
-           (node (org-roam-node-from-id id))
-           (file (when node (org-roam-node-file node)))
-           (title (or desc (when node (org-roam-node-title node)) "Unknown")))
-      (if (and file (file-exists-p file))
-          (format "{{< ref \"%s\" >}}" (file-name-sans-extension (file-name-nondirectory file)))
-        (format "*%s*" title))))  ; Use italic text for missing links
+(defun my/org-roam-link-to-hugo-link (link desc)
+  "Convert an Org-roam link to a Hugo internal link or plain text if file is missing."
+  (let* ((id (org-element-property :path link))
+         (node (org-roam-node-from-id id))
+         (file (when node (org-roam-node-file node)))
+         (if (and file (file-exists-p file))
+             (format "{{< ref \"%s\" >}}" (file-name-sans-extension (file-name-nondirectory file)))
+           (format "*%s*" (or desc (when node (org-roam-node-title node)) "Unknown")))))
 
   (defun my/export-org-to-hugo (file)
     "Export a single org file to Hugo markdown."
@@ -670,8 +964,8 @@ Custom TODO states & Tags
           (let* ((org-export-with-broken-links t)
                  (section (my/get-hugo-section file))
                  (org-hugo-section section)
-                 (org-export-before-parsing-hook '(org-roam-bibtex-replace-links
-                                                   org-roam-replace-roam-links))
+                 (org-export-before-parsing-functions '(org-roam-bibtex-replace-links
+                                                        org-roam-replace-roam-links))
                  (org-hugo-link-org-files-as-md t)
                  (org-link-parameters '(("id" :export my/org-roam-link-to-hugo-link))))
             (org-hugo-export-wim-to-md)
@@ -711,35 +1005,170 @@ Custom TODO states & Tags
 
 (message "ox-hugo configuration loaded")
 #+end_src
+*** ORG - Transclusion:
+:PROPERTIES:
+:ID:       391f46df-2683-47dd-99ec-0c30b9b38875
+:END:
+This means I can easily embed parts of one note into another without having to repeat myself.
+#+begin_src emacs-lisp
+(use-package! org-transclusion
+  :after org
+  :commands (org-transclusion-mode org-transclusion-add
+                                   org-transclusion-remove org-transclusion-refresh
+                                   org-transclusion-open-source)
+  :init
+  ;; Function to insert #+transclude: and prompt for org-roam node
+  (defun my/insert-transclude-with-node ()
+    "Insert #+transclude: and then prompt for an org-roam node to insert."
+    (interactive)
+    (insert "#+transclude: ")
+    (org-roam-node-insert))
+
+  ;; Doom Emacs transclude keybindings as submenu under existing leader t:
+  (map! :map org-mode-map
+        :leader
+        (:prefix ("t" . "toggle")
+                 (:prefix ("t" . "transclude")
+                  :desc "Toggle transclusion mode"       "t" #'org-transclusion-mode
+                  :desc "Add transclusion at point"     "a" #'org-transclusion-add
+                  :desc "Remove transclusion at point"  "r" #'org-transclusion-remove
+                  :desc "Refresh all transclusions"     "R" #'org-transclusion-refresh
+                  :desc "Open transclusion source"      "o" #'org-transclusion-open-source
+                  :desc "Insert transclude with node"   "i" #'my/insert-transclude-with-node
+                  :desc "Sync editing"                  "s" #'org-transclusion-live-sync-start))))
+
+
+;; Doom Emacs keybinding using map! macro:
+(map! :leader "nrt" #'my/insert-transclude-with-node)
+#+end_src
+** Markdown:
+:PROPERTIES:
+:ID:       fb90e51d-e4eb-43cc-8bcf-3970bf57e8a2
+:END:
+- Why have MD customization when I have org. Sometimes when writing reports this is the best option as it's compatible accross the board and doesn't require exporting, which with my custom org markers can be cumbersome.
+*** Markdown: Line Numbers Display:
+:PROPERTIES:
+:ID:       1cd30d6b-d28b-4f79-a426-423874dc4d30
+:END:
+#+begin_src emacs-lisp
+;; Markdown & line settings
+
+;;(setq display-line-numbers-type t)
+;;(map! :leader
+      ;;:desc "Comment or uncomment lines" "TAB TAB" #'comment-line
+      ;;(:prefix ("t" . "toggle")
+       ;;:desc "Toggle line numbers" "l" #'doom/toggle-line-numbers
+       ;;:desc "Toggle line highlight in frame" "h" #'hl-line-mode
+       ;;:desc "Toggle line highlight globally" "H" #'global-hl-line-mode
+       ;;:desc "Toggle truncate lines" "t" #'toggle-truncate-lines))
+#+end_src
+*** Markdown: Set Custom Headers:
+:PROPERTIES:
+:ID:       ebc51896-42f8-4d70-bba9-6dc4d2123d93
+:END:
+
+#+begin_src emacs-lisp
+
+;Markdown: Set Custom Headers:
+;;(custom-set-faces!
+ ;; Headers
+
+;;'(markdown-header-delimiter-face :foreground "#616161" :height 0.9)
+;;'(markdown-header-face-1 :height 1.8 :foreground "#FF79C6" :weight extra-bold :inherit markdown-header-face)
+;;'(markdown-header-face-2 :height 1.4 :foreground "#BD93F9" :weight extra-bold :inherit markdown-header-face)
+;;'(markdown-header-face-3 :height 1.2 :foreground "#D4B8FB" :weight extra-bold :inherit markdown-header-face)
+;;'(markdown-header-face-4 :height 1.15 :foreground "#FFA7D9" :weight bold :inherit markdown-header-face)
+;;'(markdown-header-face-5 :height 1.1 :foreground "#E4D3FC" :weight bold :inherit markdown-header-face)
+;;'(markdown-header-face-6 :height 1.05 :foreground "#5e81ac" :weight semi-bold :inherit markdown-header-face)
+
+;;; Custom bold etc
+
+;;'(markdown-code-face :background "#6BB86B" :foreground "#575a71")
+;;'(markdown-line-break-face :weight extra-black :foreground "#79c6ff")
+;;'(markdown-italic-face :weight black :foreground "#79c6ff")
+;;'(markdown-list-face :weight black :foreground "#BD93F9")
+;;'(markdown-bold-face :weight black :foreground "#A061F9"))
+#+end_src
+
+*** Markdown: Functions To Allow Markdown preview whilst typing:
+:PROPERTIES:
+:ID:       4e16c322-0c20-4d06-b4ca-6cadd0622c6a
+:END:
+#+begin_src emacs-lisp
+
+;; Enables markdown preview whilst creating doc.
+
+;; (defvar nb/current-line '(0 . 0)
+;;   "(start . end) of current line in current buffer")
+;; (make-variable-buffer-local 'nb/current-line)
+;;
+;; (defun nb/unhide-current-line (limit)
+;;   "Font-lock function"
+;;   (let ((start (max (point) (car nb/current-line)))
+;;         (end (min limit (cdr nb/current-line))))
+;;     (when (< start end)
+;;       (remove-text-properties start end
+;;                       '(invisible t display "" composition ""))
+;;       (goto-char limit)
+;;       t)))
+;;
+;; (defun nb/refontify-on-linemove ()
+;;   "Post-command-hook"
+;;   (let* ((start (line-beginning-position))
+;;          (end (line-beginning-position 2))
+;;          (needs-update (not (equal start (car nb/current-line)))))
+;;     (setq nb/current-line (cons start end))
+;;     (when needs-update
+;;       (font-lock-fontify-block 3))))
+;;
+;; (defun nb/markdown-unhighlight ()
+;;   "Enable markdown concealling"
+;;   (interactive)
+;;   (markdown-toggle-markup-hiding 'toggle)
+;;   (font-lock-add-keywords nil '((nb/unhide-current-line)) t)
+;;   (add-hook 'post-command-hook #'nb/refontify-on-linemove nil t))
+
+;; Toggles on for all MD docs. Remove to turn off.
+
+;; (add-hook 'markdown-mode-hook #'nb/markdown-unhighlight)
+
+;; Enable code block syntax highlight
+
+;; (setq markdown-enable-highlighting-syntax t)
+
+;; Enable wiki links in all md files by default:
+
+;; (setq markdown-enable-wiki-links t)
+
+#+end_src
+*** Markdown: Keymaps:
+:PROPERTIES:
+:ID:       f8a304da-3296-4fde-984f-c163db4f9307
+:END:
+#+begin_src emacs-lisp
+; Make emacs auto indent when we create a new list item.
+;;(setq markdown-indent-on-enter 'indent-and-new-item)
+#+end_src
 
 ** Quality Of Life:
 :PROPERTIES:
 :ID:       9738f0a2-351e-4da6-a97b-cc4951baa6be
 :END:
-*** Save Easier:
+*** Fuzzy Search My Notes: 
 :PROPERTIES:
-:ID:       a75ea2ec-7719-4c6a-9748-85a7ff4c5305
+:ID:       c29311e5-05d2-47e2-9783-bda87d0baae7
 :END:
-- Stolen from https://github.com/elken/doom
 #+begin_src emacs-lisp
 ;Back to a simpler time…
-(map! :g "C-s" #'save-buffer)
+(map! :g "C-s" (lambda () (interactive) (consult-ripgrep "~/Notes")))
 #+end_src
-*** Search Easier:
+*** Search Easier In Current Doc: 
 :PROPERTIES:
-:ID:       4d3c1652-3dd3-42ae-b5d6-b0c80f14cf9e
+:ID:       ea9116a8-4792-4049-ae69-1489e0a6aecf
 :END:
-- Stolen from https://github.com/elken/doom
 #+begin_src emacs-lisp
-; Search easily
+;; Search current document
 (map! :after evil :gnvi "C-f" #'consult-line)
-#+end_src
-*** Remove line numbers to speed up scrolling:
-:PROPERTIES:
-:ID:       3ce5efb1-e81d-46bf-a121-deeb239ccf9d
-:END:
-#+begin_src shell
-;;(setq display-line-numbers-type nil)
 #+end_src
 *** Use VIM Keybindings to move between windows around:
 :PROPERTIES:
@@ -839,16 +1268,38 @@ Some custom functions to insert the date.  The function 'insert-todays-date' can
         :desc "Insert today's date" "t" #'dt/insert-todays-date
         :desc "Insert current time" "c" #'dt/insert-current-time))
 #+end_src
+*** Create Codeboxes With Leader Key:
+:PROPERTIES:
+:ID:       a3bd4a1c-0841-4c5c-8372-7036f7e8e99c
+:END:
+#+begin_src emacs-lisp
+;; Expand "<q" (quote), "<s" (src), etc. with SPACE in Org buffers
+(after! org
+  (require 'org-tempo) ;; ensures org-tempo templates like <q, <s, <e, ... exist
+  (defun +my/org-tempo-on-space ()
+    "If point is after an org-tempo tag at BOL like \"<q\" or \"<s\", expand it.
+Otherwise insert a literal space."
+    (interactive)
+    (if (and (derived-mode-p 'org-mode)
+             ;; Check if we're at the end of a tag anywhere on the line
+             (looking-back "<[A-Za-z0-9_-]+" (line-beginning-position)))
+        (org-tempo-complete-tag)
+      (insert " ")))
+  ;; In org-mode, SPACE triggers our helper
+  (define-key org-mode-map (kbd "SPC") #'+my/org-tempo-on-space))
+
+#+end_src
 * packages.el:
 :PROPERTIES:
-:header-args: :tangle packages.el
-:ID:       b83d93d6-bbdf-4f41-8527-ace1b105a0ab
+:ID:       e8e9c48f-7898-45fd-b2eb-9a1d542991b6
+:header-args: emacs-lisp :tangle ~/.config/doom/packages.el
 :END:
-- Dooms package manager. Specify here waht packages to install.
+
+- Dooms package manager. Specify here what packages to install.
+
 #+begin_src emacs-lisp
 (package! emojify)
 (package! org-super-agenda)
-(package! magithub)
 (package! flycheck-aspell)
 (package! calfw)
 (package! calfw-org)
@@ -865,36 +1316,31 @@ Some custom functions to insert the date.  The function 'insert-todays-date' can
 (package! org-auto-tangle)
 (package! org-web-tools)
 (package! ox-hugo)
-;; So I can export org to md well
-;;(package! ox-gemini)
 (package! peep-dired)
-;;(package! password-store)
 (package! rainbow-mode)
 (package! resize-window)
-;;(package! tldr)
 (package! wc-mode)
 (package! beacon)
-;;(package! clippy)
-;;(package! minimap)
 (package! olivetti)
 (package! powershell)
-;;(package! multi-vterm)
 (package! org-download)
 (package! org-ros)
 (package! mini-frame)
-(package! tron-legacy-theme)
-
+(package! git-commit
+  :recipe (:host github :repo "magit/magit" :files ("lisp/git-commit.el")))
+;; For emacs-everywhere browser integration
 (package! vlf :recipe (:host github :repo "emacs-straight/vlf" :files ("*.el"))
   :pin "9b7bc521e54af2c7a5c882e4758b66ee4af1a152")
-;; For emacs-everywhere browser integration
-(package! atomic-chrome)
-
-
+;; Nice Scrolling in tables
+(package! phscroll
+  :recipe (:host github :repo "misohena/phscroll" :files ("*.el")))
+;; Nice Scrolling in tables
+(package! org-transclusion)
 #+end_src
 * init.el
 :PROPERTIES:
-:header-args: :tangle init.el
-:ID:       2fd52c4f-aead-4de9-8ac4-b8881d764b69
+:ID:       b2e9f677-b4e4-4d95-b5e7-e548686441cd
+:header-args: emacs-lisp :tangle ~/.config/doom/init.el
 :END:
 - This file controls what Doom modules are enabled and what order they load in. Remember to run '~doom sync~' after modifying it!
 #+begin_src emacs-lisp
@@ -1027,7 +1473,7 @@ Some custom functions to insert the date.  The function 'insert-todays-date' can
        ;;idris             ; a language you can depend on
        json              ; At least it ain't XML
        ;;(java +meghanada) ; the poster child for carpal tunnel syndrome
-       javascript        ; all(hope(abandon(ye(who(enter(here))))))
+       ;;javascript        ; all(hope(abandon(ye(who(enter(here))))))
        ;;julia             ; a better, faster MATLAB
        ;;kotlin            ; a better, slicker Java(Script)
        ;;latex             ; writing papers in Emacs has never been so fun
@@ -1044,15 +1490,13 @@ Some custom functions to insert the date.  The function 'insert-todays-date' can
             +hugo
             +pandoc
             +present
-            +dragndrop
-            +pomodoro
             +habit               ; organize your plain life in plain text
             +roam2)
-       php               ; perl's insecure younger brother
+       ;;php               ; perl's insecure younger brother
        ;;plantuml          ; diagrams for confusing people more
        ;;purescript        ; javascript, but functional
-       python            ; beautiful is better than ugly
-       powershell         ; will it work?
+       ;;python            ; beautiful is better than ugly
+       ;;powershell         ; will it work?
        ;;qt                ; the 'cutest' gui framework ever
        ;;racket            ; a DSL for DSLs
        ;;raku              ; the artist formerly known as perl6
@@ -1090,9 +1534,10 @@ Some custom functions to insert the date.  The function 'insert-todays-date' can
 #+end_src
 * custom.el
 :PROPERTIES:
-:header-args: :tangle custom.el
-:ID:       694ba278-f923-4dd2-b300-0f2aacf4d27a
+:ID:       87202800-addd-41ec-88f7-b948ea892f24
+:header-args: emacs-lisp :tangle ~/.config/doom/custom.el
 :END:
+
 #+begin_src emacs-lisp
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -1105,6 +1550,7 @@ Some custom functions to insert the date.  The function 'insert-todays-date' can
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ ;; Test
  )
 (setq org-gtd-update-ack "3.0.0")
 
