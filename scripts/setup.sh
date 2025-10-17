@@ -20,6 +20,7 @@ cd ~/
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y \
     emacs \
+    alacritty \
     eza \
     bat \
     ripgrep \
@@ -34,13 +35,10 @@ sudo apt install -y \
     unzip \
     fonts-firacode \
     python3-argcomplete \
-    atuin \
     flameshot \
     syncthing \
     syncthingtray \
-    ffuf \
-    nmap \
-    nikto 
+    hugo
 
 # For ubuntu and remove autuin above
 #snap install atuin
@@ -74,6 +72,7 @@ git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/
 git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
 git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git "$ZSH_CUSTOM/plugins/fast-syntax-highlighting"
 git clone --depth 1 https://github.com/marlonrichert/zsh-autocomplete.git "$ZSH_CUSTOM/plugins/zsh-autocomplete"
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 
 # Change default shell to Zsh if available
 if command -v zsh >/dev/null && grep -q "$(command -v zsh)" /etc/shells; then
@@ -111,7 +110,6 @@ fc-cache -fv
 
 
 # Configure Dots
-mkdir ~/.config/kitty
 mkdir ~/VMShare
 rm ~/.zshrc
 ln -s ~/.dotfiles/Zsh/.zshrc ~/.zshrc
@@ -119,8 +117,5 @@ rm ~/.config/doom/*.el
 ln -s ~/.dotfiles/Doom/*.el ~/.config/doom
 ln -s ~/.dotfiles/Tmux/.tmux.conf ~/.tmux.conf
 ln -s ~/.dotfiles/Kitty/* ~/.config/kitty/
-ln -s ~/.dotfiles/Wezterm/wezterm.lua ~/.wezterm.lua
 cd
 ./.config/emacs/bin/doom sync
-
-echo "Remember to add the shortcuts for flameshot '/bin/sh -c "flameshot gui" > /dev/null &'"
