@@ -11,8 +11,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Base paths
-TEMPLATE_BASE="/home/martin/Notes/Templates"
-WORK_BASE="/home/martin/VMShare/Work/Tests"
+TEMPLATE_BASE="$HOME/Notes/Templates"
+WORK_BASE="$HOME/VMShare/Work/Tests"
 
 # Function to display colored messages
 print_success() {
@@ -105,11 +105,14 @@ print_success "Created main folder: $main_path"
 scan_folders=("nmap" "nessus" "nikto" "burpsuite")
 scans_path="$main_path/scans"
 docs_path="$main_path/docs"
+screenshots_path="$main_path/screenshots"
 
 mkdir -p "$docs_path"
 print_success "Created docs folder"
 mkdir -p "$scans_path"
 print_success "Created scans folder"
+mkdir -p "$screenshots_path"
+print_success "Created screenshots folder"
 
 for folder in "${scan_folders[@]}"; do
     mkdir -p "$scans_path/$folder"
@@ -177,6 +180,18 @@ if [ -f "$engagement_source" ]; then
     print_success "Copied EngagementTodo template"
 else
     print_error "EngagementTodo template not found: $engagement_source"
+fi
+
+# Copy scan.sh (required for all tests)
+scan_source="$TEMPLATE_BASE/TestScripts/scan.sh"
+scan_dest="$main_path/scan.sh"
+
+if [ -f "$scan_source" ]; then
+    cp "$scan_source" "$scan_dest"
+    chmod +x "$scan_dest"
+    print_success "Copied scan.sh script"
+else
+    print_error "scan.sh script not found: $scan_source"
 fi
 
 # Create additional common files
