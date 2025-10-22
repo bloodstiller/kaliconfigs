@@ -106,6 +106,7 @@ scan_folders=("nmap" "nessus" "nikto" "burpsuite")
 scans_path="$main_path/scans"
 docs_path="$main_path/docs"
 screenshots_path="$main_path/screenshots"
+report_path="$main_path/report"
 
 mkdir -p "$docs_path"
 print_success "Created docs folder"
@@ -113,6 +114,8 @@ mkdir -p "$scans_path"
 print_success "Created scans folder"
 mkdir -p "$screenshots_path"
 print_success "Created screenshots folder"
+mkdir -p "$report_path"
+print_success "Created report folder"
 
 for folder in "${scan_folders[@]}"; do
     mkdir -p "$scans_path/$folder"
