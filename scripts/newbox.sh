@@ -15,10 +15,10 @@ if [ ! -d "$base_dir" ]; then
     mkdir -p "$base_dir"
     
     # Copy template files
-    cp -r /home/kali/Notes/Templates/BoxTemplate/BoxTemplate.org "$base_dir/$box_name-box.org"
-    cp /home/kali/Notes/Templates/BoxTemplate/Hashes.txt "$base_dir"
-    cp /home/kali/Notes/Templates/BoxTemplate/Passwords.txt "$base_dir"
-    cp /home/kali/Notes/Templates/BoxTemplate/Users.txt "$base_dir"
+    cp -r /home/kali/Templates/BoxTemplate/BoxTemplate.org "$base_dir/$box_name-box.org"
+    cp /home/kali/Templates/BoxTemplate/Hashes.txt "$base_dir"
+    cp /home/kali/Templates/BoxTemplate/Passwords.txt "$base_dir"
+    cp /home/kali/Templates/BoxTemplate/Users.txt "$base_dir"
     
     # Change to the new directory and create structure
     cd "$base_dir" || { echo "Failed to cd to $base_dir"; exit 1; }

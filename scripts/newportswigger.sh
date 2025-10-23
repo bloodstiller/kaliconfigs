@@ -15,8 +15,8 @@ read -p "Enter Lab Name: " lab_name
 lab_name=$(echo "$lab_name" | tr ' ' '_')
 
 # Define paths
-template_file="$HOME/Notes/Templates/PortSwiggerTemplate.org"
-dest_dir="$HOME/Notes/portswiggerLabs"
+template_file="$HOME/Templates/PortSwiggerTemplate.org"
+dest_dir="$HOME/Content/Portswigger"
 dest_file="$dest_dir/$lab_name.org"
 
 # Check if template exists
