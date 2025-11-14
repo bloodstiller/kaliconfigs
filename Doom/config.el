@@ -171,10 +171,10 @@
            "* %?"
            :empty-lines 0)
 
-;; Weekly Reviews
-("R" "Weekly Review"
- entry (file+datetree "/home/kali/Dropbox/50-59_PersonalDevelopment/52-Reviews/52.02 Weekly Reviews/WeeklyReviews.org" "Weekly Reviews")
-"* Week of %U
+          ;; Weekly Reviews
+          ("R" "Weekly Review"
+           entry (file+datetree "/home/kali/Dropbox/50-59_PersonalDevelopment/52-Reviews/52.02 Weekly Reviews/WeeklyReviews.org" "Weekly Reviews")
+           "* Week of %U
 ** Accomplishments
 *** What did I complete this week?
 -
@@ -220,8 +220,8 @@
 1.
 2.
 3."
- :empty-lines 0)
-       )))
+           :empty-lines 0)
+          )))
 
 ;;;;;;;;;;;;;;;;;;;;;ORG CRYPT
 ;; ORG CRYPT TAG Setup for inline encryption
@@ -310,13 +310,6 @@
                             (:discard (:anything))))))))))
   (org-super-agenda-mode))
 
-;; Journal Config
-(setq org-journal-dir "/home/kali/Dropbox/50-59_PersonalDevelopment/51-Diaries/51.01-Daily_Diaries"
-      org-journal-date-prefix "#+TITLE: "
-      org-journal-time-prefix "* "
-      org-journal-date-format "%a, %d-%m-%Y"
-      org-journal-file-format "%d-%m-%Y-jrnl.org")
-
 (map! :leader
       :desc "recenter-top-bottom"
       "s c" #'recenter-top-bottom)
@@ -344,8 +337,8 @@
 
 (add-hook 'org-capture-prepare-finalize-hook 'org-id-get-create)
 (defun my/org-add-ids-to-headlines-in-file ()
-;  "Add ID properties to all headlines in the current file which
-;do not already have one."
+                                        ;  "Add ID properties to all headlines in the current file which
+                                        ;do not already have one."
   (interactive)
   (org-map-entries 'org-id-get-create))
 (add-hook 'org-mode-hook
@@ -359,7 +352,7 @@
 ;; effectively acts as preview.
 
 (after! org
-(setq org-hide-emphasis-markers t))
+  (setq org-hide-emphasis-markers t))
 
 ;;Customize ORG higlighting
 ;; this controls the color of bold, italic, underline, verbatim, strikethrough
@@ -415,12 +408,12 @@
 
 ;; Set these *before* loading org-roam
 (require 'org-roam)
-(setq org-roam-directory "/mnt/hgfs/Notes")
+(setq org-roam-directory "~/Notes")
 
 (after! org-roam
   (setq org-roam-list-files-commands '(find fd fdfind rg)))
 
-;Roam - Capture Templates:
+                                        ;Roam - Capture Templates:
 (setq org-roam-capture-templates
       '(("d" "default" plain
          "%?"
@@ -594,16 +587,16 @@
 
 ;;(setq display-line-numbers-type t)
 ;;(map! :leader
-      ;;:desc "Comment or uncomment lines" "TAB TAB" #'comment-line
-      ;;(:prefix ("t" . "toggle")
-       ;;:desc "Toggle line numbers" "l" #'doom/toggle-line-numbers
-       ;;:desc "Toggle line highlight in frame" "h" #'hl-line-mode
-       ;;:desc "Toggle line highlight globally" "H" #'global-hl-line-mode
-       ;;:desc "Toggle truncate lines" "t" #'toggle-truncate-lines))
+;;:desc "Comment or uncomment lines" "TAB TAB" #'comment-line
+;;(:prefix ("t" . "toggle")
+;;:desc "Toggle line numbers" "l" #'doom/toggle-line-numbers
+;;:desc "Toggle line highlight in frame" "h" #'hl-line-mode
+;;:desc "Toggle line highlight globally" "H" #'global-hl-line-mode
+;;:desc "Toggle truncate lines" "t" #'toggle-truncate-lines))
 
-;Markdown: Set Custom Headers:
+                                        ;Markdown: Set Custom Headers:
 ;;(custom-set-faces!
- ;; Headers
+;; Headers
 
 ;;'(markdown-header-delimiter-face :foreground "#616161" :height 0.9)
 ;;'(markdown-header-face-1 :height 1.8 :foreground "#FF79C6" :weight extra-bold :inherit markdown-header-face)
@@ -665,22 +658,22 @@
 
 ;; (setq markdown-enable-wiki-links t)
 
-; Make emacs auto indent when we create a new list item.
+                                        ; Make emacs auto indent when we create a new list item.
 ;;(setq markdown-indent-on-enter 'indent-and-new-item)
 
-;Back to a simpler time…
+                                        ;Back to a simpler time…
 (map! :g "C-s" (lambda () (interactive) (consult-ripgrep "~/Notes")))
 
 ;; Search current document
 (map! :after evil :gnvi "C-f" #'consult-line)
 
-;Use VIM Keybindings to move between windows:
+                                        ;Use VIM Keybindings to move between windows:
 (define-key evil-motion-state-map (kbd "C-h") #'evil-window-left)
 (define-key evil-motion-state-map (kbd "C-j") #'evil-window-down)
 (define-key evil-motion-state-map (kbd "C-k") #'evil-window-up)
 (define-key evil-motion-state-map (kbd "C-l") #'evil-window-right)
 
-; Zoom in and Out easily
+                                        ; Zoom in and Out easily
 (defun my/increase-text-height ()
   (interactive)
   (text-scale-increase 1))
@@ -718,9 +711,9 @@
 
 (map! :leader
       (:prefix ("i d" . "Insert date/time")
-        :desc "Insert any date"    "a" #'dt/insert-any-date
-        :desc "Insert today's date" "t" #'dt/insert-todays-date
-        :desc "Insert current time" "c" #'dt/insert-current-time))
+       :desc "Insert any date"    "a" #'dt/insert-any-date
+       :desc "Insert today's date" "t" #'dt/insert-todays-date
+       :desc "Insert current time" "c" #'dt/insert-current-time))
 
 ;; Expand "<q" (quote), "<s" (src), etc. with SPACE in Org buffers
 (after! org

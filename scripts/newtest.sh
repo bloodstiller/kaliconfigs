@@ -11,7 +11,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Base paths
-TEMPLATE_BASE="$HOME/Notes/Templates"
+TEMPLATE_BASE="$HOME/Templates"
 WORK_BASE="$HOME/VMShare/Work/Tests"
 
 # Function to display colored messages
@@ -186,8 +186,8 @@ else
 fi
 
 # Copy scan.sh (required for all tests)
-scan_source="$TEMPLATE_BASE/TestScripts/scan.sh"
-scan_dest="$main_path/scan.sh"
+scan_source="$TEMPLATE_BASE/TestScripts/scans.sh"
+scan_dest="$main_path/scans.sh"
 
 if [ -f "$scan_source" ]; then
     cp "$scan_source" "$scan_dest"
