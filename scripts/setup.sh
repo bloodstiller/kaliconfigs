@@ -25,7 +25,6 @@ sudo apt install -y \
     ripgrep \
     git \
     cmake \
-    kitty \
     tmux \
     zsh \
     wget \
@@ -40,7 +39,17 @@ sudo apt install -y \
     syncthingtray \
     ffuf \
     nmap \
-    nikto 
+    nikto \
+    golang-go
+
+# Install Nuclei
+go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+sudo ln -s ~/go/bin/nuclei /usr/local/bin/nuclei 
+git clone https://github.com/bloodstiller/nuclei-templates.git ~/nuclei-templates/
+
+#Install katana
+CGO_ENABLED=1 go install github.com/projectdiscovery/katana/cmd/katana@latest
+sudo ln -s ~/go/bin/katana /usr/local/bin/katana
 
 # For ubuntu and remove autuin above
 #snap install atuin
@@ -111,16 +120,15 @@ fc-cache -fv
 
 
 # Configure Dots
-mkdir ~/.config/kitty
 mkdir ~/VMShare
 rm ~/.zshrc
 ln -s ~/.dotfiles/Zsh/.zshrc ~/.zshrc
 rm ~/.config/doom/*.el
 ln -s ~/.dotfiles/Doom/*.el ~/.config/doom
 ln -s ~/.dotfiles/Tmux/.tmux.conf ~/.tmux.conf
-ln -s ~/.dotfiles/Kitty/* ~/.config/kitty/
-ln -s ~/.dotfiles/Wezterm/wezterm.lua ~/.wezterm.lua
+#ln -s ~/.dotfiles/Kitty/* ~/.config/kitty/
+#ln -s ~/.dotfiles/Wezterm/wezterm.lua ~/.wezterm.lua
 cd
 ./.config/emacs/bin/doom sync
 
-echo "Remember to add the shortcuts for flameshot '/bin/sh -c "flameshot gui" > /dev/null &'"
+#echo "Remember to add the shortcuts for flameshot '/bin/sh -c "flameshot gui" > /dev/null &'"
