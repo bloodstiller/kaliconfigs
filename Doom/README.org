@@ -36,6 +36,7 @@
 :ID:       20a5b90c-8c46-4037-bb1e-ee9fefda1e30
 :header-args: emacs-lisp :tangle ~/.dotfiles/Doom/config.el
 :END:
+
 ** General Settings:
 :PROPERTIES:
 :ID:       553f0eaf-80e3-4469-935c-e5170383929e
@@ -816,7 +817,7 @@ If I place "crypt" tag in any entry it will encrypt it.
 #+begin_src emacs-lisp
 ;; Set these *before* loading org-roam
 (require 'org-roam)
-(setq org-roam-directory "/mnt/hgfs/Notes")
+(setq org-roam-directory "~/Notes")
 #+end_src
 
 **** Roam - (make git ignored files in subdirectories still searchable)
@@ -858,48 +859,48 @@ If I place "crypt" tag in any entry it will encrypt it.
          :unnarrowed t)
 
         ("A" "Application" plain
-         (file "~/.config/orgTemplates/Application.org")
+         (file "~/Templates/Archive/Application.org")
          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)
 
         ("a" "Attack Type" plain
-         (file "~/.config/orgTemplates/AttackTemplate.org")
+         (file "~/Templates/Archive/AttackTemplate.org")
          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)
 
         ("b" "Box" plain
-         (file "~/.config/orgTemplates/BoxTemplate.org")
+         (file "~/Templates/Archive/BoxTemplate.org")
          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)
 
         ("c" "CPTS Module" plain
-         (file "~/.config/orgTemplates/CPTSSection.org")
+         (file "~/Templates/Archive/CPTSSection.org")
          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)
 
         ("p" "Pentest" plain
-         (file "~/.config/orgTemplates/Pentest.org")
+         (file "~/Templates/Archive/Pentest.org")
          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)
 
 
         ("n" "Start Project" plain
-         (file "~/.config/orgTemplates/ProjectStartTemplate.org")
+         (file "~/Templates/Archive/ProjectStartTemplate.org")
          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)
 
         ("N" "End Project" plain
-         (file "~/.config/orgTemplates/ProjectEndTemplate.org")
+         (file "~/Templates/Archive/ProjectEndTemplate.org")
          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)
 
         ("s" "Service" plain
-         (file "~/.config/orgTemplates/ServiceTemplate.org")
+         (file "~/Templates/Archive/ServiceTemplate.org")
          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)
 
         ("t" "Tool" plain
-         (file "~/.config/orgTemplates/ToolTemplate.org")
+         (file "~/Templates/Archive/ToolTemplate.org")
          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)))
 #+end_src
