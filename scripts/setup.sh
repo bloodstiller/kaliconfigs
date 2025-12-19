@@ -51,26 +51,8 @@ git clone https://github.com/bloodstiller/nuclei-templates.git ~/nuclei-template
 CGO_ENABLED=1 go install github.com/projectdiscovery/katana/cmd/katana@latest
 sudo ln -s ~/go/bin/katana /usr/local/bin/katana
 
-# For ubuntu and remove autuin above
-#snap install atuin
-
-# snap install seclists
-
-# Install wezterm ubuntu
-#curl -fsSL https://apt.fury.io/wez/gpg.key | sudo gpg --yes --dearmor -o /usr/share/keyrings/wezterm-fury.gpg
-#echo 'deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *' | sudo tee /etc/apt/sources.list.d/wezterm.list
-#sudo chmod 644 /usr/share/keyrings/wezterm-fury.gpg
-#sudo apt update
-#sudo apt install wezterm
-
-#Install openvpn3 
-
-#sudo mkdir -p /etc/apt/keyrings && curl -fsSL https://packages.openvpn.net/packages-repo.gpg | sudo tee /etc/apt/keyrings/openvpn.asc
-#DISTRO=$(lsb_release -c -s)
-#echo "deb [signed-by=/etc/apt/keyrings/openvpn.asc] https://packages.openvpn.net/openvpn3/debian $DISTRO main" | sudo tee /etc/apt/sources.list.d/openvpn-packages.list
-#sudo apt update
-#sudo apt install openvpn3
-
+#Install Waymore
+pipx install git+https://github.com/xnl-h4ck3r/waymore.git
 
 # Install Oh My Zsh without launching Zsh or changing shell automatically
 export RUNZSH=no CHSH=no
@@ -126,9 +108,6 @@ ln -s ~/.dotfiles/Zsh/.zshrc ~/.zshrc
 rm ~/.config/doom/*.el
 ln -s ~/.dotfiles/Doom/*.el ~/.config/doom
 ln -s ~/.dotfiles/Tmux/.tmux.conf ~/.tmux.conf
-#ln -s ~/.dotfiles/Kitty/* ~/.config/kitty/
-#ln -s ~/.dotfiles/Wezterm/wezterm.lua ~/.wezterm.lua
 cd
 ./.config/emacs/bin/doom sync
 
-#echo "Remember to add the shortcuts for flameshot '/bin/sh -c "flameshot gui" > /dev/null &'"

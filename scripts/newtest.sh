@@ -61,13 +61,17 @@ echo ""
 echo "Select Test Type:"
 echo "1) External Infrastructure Pentest"
 echo "2) Web Application Pentest"
-echo "3) Both (Infrastructure + Web Application)"
+echo "3) Cloud Penetration Test"
+echo "4) Infrastructure + Web Application"
+echo "5) Infrastructure + Cloud"
+echo "6) Web Application + Cloud"
+echo "7) All (Infrastructure + Web Application + Cloud)"
 echo ""
-read -p "Enter choice [1-3]: " test_type
+read -p "Enter choice [1-7]: " test_type
 
 # Validate test type
 case $test_type in
-    1|2|3)
+    1|2|3|4|5|6|7)
         ;;
     *)
         print_error "Invalid test type selected!"
@@ -101,8 +105,7 @@ if [ $? -ne 0 ]; then
 fi
 print_success "Created main folder: $main_path"
 
-# Create scans subfolder structure
-scan_folders=("nmap" "nessus" "nikto" "burpsuite")
+# Create basic folder structure
 scans_path="$main_path/scans"
 docs_path="$main_path/docs"
 screenshots_path="$main_path/screenshots"
@@ -117,15 +120,35 @@ print_success "Created screenshots folder"
 mkdir -p "$report_path"
 print_success "Created report folder"
 
-for folder in "${scan_folders[@]}"; do
-    mkdir -p "$scans_path/$folder"
-    print_success "Created subfolder: scans/$folder"
-done
+# Create scan subfolders based on test type
+# Default scan folders for infrastructure/web tests
+scan_folders=("nmap" "nessus" "nikto" "burpsuite" "wordpress" "nuclei")
+
+# Add cloud folders if cloud test is selected
+case $test_type in
+    3|5|6|7)
+        cloud_folders=("AWS" "Azure" "GCP")
+        for folder in "${cloud_folders[@]}"; do
+            mkdir -p "$scans_path/$folder"
+            print_success "Created cloud subfolder: scans/$folder"
+        done
+        ;;
+esac
+
+# Create standard scan folders for non-cloud-only tests
+case $test_type in
+    1|2|4|5|6|7)
+        for folder in "${scan_folders[@]}"; do
+            mkdir -p "$scans_path/$folder"
+            print_success "Created subfolder: scans/$folder"
+        done
+        ;;
+esac
 
 # Copy appropriate template(s)
 case $test_type in
     1)
-        # Infrastructure test
+        # Infrastructure test only
         source_file="$TEMPLATE_BASE/InfraTestTemplate/External_Infrastructure_Pentest_checklist.org"
         dest_file="$main_path/${job_name}_${job_number}_external_pentest_checklist.org"
         
@@ -137,7 +160,7 @@ case $test_type in
         fi
         ;;
     2)
-        # Web application test
+        # Web application test only
         source_file="$TEMPLATE_BASE/WebAppTestTemplate/web_appliction_penetration_test_checklist.org"
         dest_file="$main_path/${job_name}_${job_number}_web_application_pentest_checklist.org"
         
@@ -149,7 +172,19 @@ case $test_type in
         fi
         ;;
     3)
-        # Both templates
+        # Cloud test only
+        source_file="$TEMPLATE_BASE/CloudTestTemplate/CloudTest_Pentest_Template.org"
+        dest_file="$main_path/${job_name}_${job_number}_cloud_pentest_checklist.org"
+        
+        if [ -f "$source_file" ]; then
+            cp "$source_file" "$dest_file"
+            print_success "Copied Cloud Penetration Test template to: $dest_file"
+        else
+            print_error "Template not found: $source_file"
+        fi
+        ;;
+    4)
+        # Infrastructure + Web Application
         # Infrastructure
         source_file="$TEMPLATE_BASE/InfraTestTemplate/External_Infrastructure_Pentest_checklist.org"
         dest_file="$main_path/${job_name}_${job_number}_external_pentest_checklist.org"
@@ -170,6 +205,89 @@ case $test_type in
             print_success "Copied Web Application template"
         else
             print_error "Web Application template not found: $source_file"
+        fi
+        ;;
+    5)
+        # Infrastructure + Cloud
+        # Infrastructure
+        source_file="$TEMPLATE_BASE/InfraTestTemplate/External_Infrastructure_Pentest_checklist.org"
+        dest_file="$main_path/${job_name}_${job_number}_external_pentest_checklist.org"
+        
+        if [ -f "$source_file" ]; then
+            cp "$source_file" "$dest_file"
+            print_success "Copied Infrastructure template"
+        else
+            print_error "Infrastructure template not found: $source_file"
+        fi
+        
+        # Cloud
+        source_file="$TEMPLATE_BASE/CloudTestTemplate/CloudTest_Pentest_Template.org"
+        dest_file="$main_path/${job_name}_${job_number}_cloud_pentest_checklist.org"
+        
+        if [ -f "$source_file" ]; then
+            cp "$source_file" "$dest_file"
+            print_success "Copied Cloud Penetration Test template"
+        else
+            print_error "Cloud template not found: $source_file"
+        fi
+        ;;
+    6)
+        # Web Application + Cloud
+        # Web Application
+        source_file="$TEMPLATE_BASE/WebAppTestTemplate/web_appliction_penetration_test_checklist.org"
+        dest_file="$main_path/${job_name}_${job_number}_web_application_pentest_checklist.org"
+        
+        if [ -f "$source_file" ]; then
+            cp "$source_file" "$dest_file"
+            print_success "Copied Web Application template"
+        else
+            print_error "Web Application template not found: $source_file"
+        fi
+        
+        # Cloud
+        source_file="$TEMPLATE_BASE/CloudTestTemplate/CloudTest_Pentest_Template.org"
+        dest_file="$main_path/${job_name}_${job_number}_cloud_pentest_checklist.org"
+        
+        if [ -f "$source_file" ]; then
+            cp "$source_file" "$dest_file"
+            print_success "Copied Cloud Penetration Test template"
+        else
+            print_error "Cloud template not found: $source_file"
+        fi
+        ;;
+    7)
+        # All three templates
+        # Infrastructure
+        source_file="$TEMPLATE_BASE/InfraTestTemplate/External_Infrastructure_Pentest_checklist.org"
+        dest_file="$main_path/${job_name}_${job_number}_external_pentest_checklist.org"
+        
+        if [ -f "$source_file" ]; then
+            cp "$source_file" "$dest_file"
+            print_success "Copied Infrastructure template"
+        else
+            print_error "Infrastructure template not found: $source_file"
+        fi
+        
+        # Web Application
+        source_file="$TEMPLATE_BASE/WebAppTestTemplate/web_appliction_penetration_test_checklist.org"
+        dest_file="$main_path/${job_name}_${job_number}_web_application_pentest_checklist.org"
+        
+        if [ -f "$source_file" ]; then
+            cp "$source_file" "$dest_file"
+            print_success "Copied Web Application template"
+        else
+            print_error "Web Application template not found: $source_file"
+        fi
+        
+        # Cloud
+        source_file="$TEMPLATE_BASE/CloudTestTemplate/CloudTest_Pentest_Template.org"
+        dest_file="$main_path/${job_name}_${job_number}_cloud_pentest_checklist.org"
+        
+        if [ -f "$source_file" ]; then
+            cp "$source_file" "$dest_file"
+            print_success "Copied Cloud Penetration Test template"
+        else
+            print_error "Cloud template not found: $source_file"
         fi
         ;;
 esac
@@ -198,8 +316,8 @@ else
 fi
 
 # Create additional common files
-touch "$main_path/Notes.txt"
-print_success "Created Notes.txt file"
+touch "$main_path/TODO.org"
+print_success "Created TODO.org file"
 
 echo ""
 print_success "Test environment created successfully!"

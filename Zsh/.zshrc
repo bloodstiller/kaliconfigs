@@ -165,7 +165,7 @@ alias lss='exa -T -L=1 -B -h -l -g --icons'
 alias cat='batcat'
 
 # Alias to run Doom Emacs
-alias doom='~/.emacs.d/bin/doom'
+alias doom='~/.config/emacs/bin/doom'
 
 alias dt='~/.dotfiles'
 alias blog='~/Blog'
