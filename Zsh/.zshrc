@@ -254,13 +254,16 @@ fi
 watch_myip & disown
 
 
-# Auto Tmux Loggin:
+# Auto Tmux Logging:
+# Auto Tmux Logging:
 if [ -n "$TMUX_PANE" ] && [ "$TMUX_PANE_LOGGING" != "1" ]; then
   export TMUX_PANE_LOGGING=1
   LOGS=$HOME/tmux_logs/$(date +%Y-%m-%d)
-  mkdir --parents $LOGS
+  mkdir -p $LOGS
   LOG_PATH="$LOGS/pane${TMUX_PANE//[^0-9]/}.log"
-  tmux pipe-pane -o -t "${TMUX_PANE}" "exec cat - | ansifilter >> $LOG_PATH"
+  
+  # Simpler pipe without cat
+  tmux pipe-pane -o "ansifilter >> $LOG_PATH"
 fi
 
 

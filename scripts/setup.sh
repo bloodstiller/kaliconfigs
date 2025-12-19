@@ -40,7 +40,8 @@ sudo apt install -y \
     ffuf \
     nmap \
     nikto \
-    golang-go
+    golang-go \
+    ansifilter
 
 # Install Nuclei
 go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
