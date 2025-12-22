@@ -41,7 +41,16 @@ sudo apt install -y \
     nmap \
     nikto \
     golang-go \
-    ansifilter
+    ansifilter \
+    docker.io \
+    docker-buildx \
+    docker-compose 
+
+# Start Docker
+sudo systemctl enable docker --now
+# Add docker user so we don't have to use sudo
+sudo usermod -aG docker $USER
+
 
 # Install Nuclei
 go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
