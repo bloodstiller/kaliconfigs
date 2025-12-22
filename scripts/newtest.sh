@@ -316,8 +316,11 @@ else
 fi
 
 # Create additional common files
-touch "$main_path/TODO.org"
-print_success "Created TODO.org file"
+touch "$main_path/TODO_${job_name}_${job_number}.org"
+print_success "Created TODO_${job_name}_${job_number}.org file"
+
+touch "$main_path/NOTES_${job_name}_${job_number}.org"
+print_success "Created Notes_${job_name}_${job_number}.org file"
 
 echo ""
 print_success "Test environment created successfully!"
