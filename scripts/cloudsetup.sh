@@ -77,10 +77,10 @@ cd
 git config --global user.name "bloodstiller"
 git config --global user.email "bloodstiller@bloodstiller.com"
 
-# Add Shared Folder To Fstab
-echo ".host:/ /mnt/hgfs fuse.vmhgfs-fuse allow_other,defaults 0 0" | sudo tee -a /etc/fstab
-
 # Configure Shared Folder
+sudo mkdir /mnt/hgfs
+sudo vmhgfs-fuse .host:/ /mnt/hgfs -o allow_other -o uid=1000
+echo ".host:/ /mnt/hgfs fuse.vmhgfs-fuse allow_other,defaults 0 0" | sudo tee -a /etc/fstab
 ln -s /mnt/hgfs/VMShare ~/VMShare
 
 #Next Steps
