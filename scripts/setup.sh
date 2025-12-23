@@ -105,7 +105,6 @@ fc-cache -fv
 
 
 # Configure Dots
-mkdir ~/VMShare
 rm ~/.zshrc
 ln -s ~/.dotfiles/Zsh/.zshrc ~/.zshrc
 rm ~/.config/doom/*.el
@@ -114,3 +113,17 @@ ln -s ~/.dotfiles/Tmux/.tmux.conf ~/.tmux.conf
 cd
 ./.config/emacs/bin/doom sync
 
+# Setup git
+git config --global user.name "bloodstiller"
+git config --global user.email "bloodstiller@bloodstiller.com"
+
+# Add Shared Folder To Fstab
+echo ".host:/ /mnt/hgfs fuse.vmhgfs-fuse allow_other,defaults 0 0" | sudo tee -a /etc/fstab
+
+# Configure Shared Folder
+ln -s /mnt/hgfs/VMShare ~/VMShare
+
+#Next Steps
+echo "################################"
+echo "Read 'cat ../PostInstall/TODO.org' for next steps"
+echo "################################"

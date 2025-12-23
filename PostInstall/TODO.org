@@ -1,15 +1,20 @@
 #+title: Todo
-
 - [ ] Setup Syncthing [0/2]
   - [ ] Notes ~/Notes
   - [ ] Org ~/Org
-- [ ] Setup Git [0/3]
-  - [ ] User
-  - [ ] Email
+- [ ] Setup Git [0/1]
   - [ ] Keys
 - [ ] Download Repos:
-  - [ ] Templates
-  - [ ] Blog
-  - [ ] Content
-- [ ] Mount Shared Folder
+  #+begin_src shell
+#Templates
+git@github.com:bloodstiller/Templates.git ~/Templates
+
+#Blog
+git@github.com:bloodstiller/bloodstiller.com.git ~/Blog
+
+#Content
+git@github.com:bloodstiller/content.git ~/Content
+  #+end_src
+  
+    
 
