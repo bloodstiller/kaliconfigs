@@ -4,3 +4,5 @@ hosts
 .vagrant/
 45.00-KaliConfigs.code-workspace
 TODO
+.env
+_data

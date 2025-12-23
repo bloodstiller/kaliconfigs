@@ -20,15 +20,11 @@ cd ~/
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y \
     emacs \
-    eza \
+    exa \
     bat \
     ripgrep \
     git \
-    cmake \
     tmux \
-    zsh \
-    wget \
-    curl \
     gnupg \
     unzip \
     fonts-firacode \
@@ -37,9 +33,6 @@ sudo apt install -y \
     flameshot \
     syncthing \
     syncthingtray \
-    ffuf \
-    nmap \
-    nikto \
     golang-go \
     ansifilter \
     docker.io \

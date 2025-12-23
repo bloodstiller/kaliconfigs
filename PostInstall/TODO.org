@@ -1,0 +1,15 @@
+#+title: Todo
+
+- [ ] Setup Syncthing [0/2]
+  - [ ] Notes ~/Notes
+  - [ ] Org ~/Org
+- [ ] Setup Git [0/3]
+  - [ ] User
+  - [ ] Email
+  - [ ] Keys
+- [ ] Download Repos:
+  - [ ] Templates
+  - [ ] Blog
+  - [ ] Content
+- [ ] Mount Shared Folder
+
