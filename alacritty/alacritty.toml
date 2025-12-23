@@ -15,7 +15,7 @@ title = "Alacritty"
   y = 10
 
 [font]
-size = 25
+size = 13.5
 
   [font.bold]
   style = "Bold"
