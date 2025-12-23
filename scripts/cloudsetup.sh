@@ -14,12 +14,15 @@ export DEBIAN_FRONTEND=noninteractive
 # Preseed Postfix to avoid interactive prompt (in case it's installed)
 echo "postfix postfix/main_mailer_type select No configuration" | sudo debconf-set-selections
 
+# Enable backports (for newer version of emacs 30.1 instead of 28.2)
+echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware" | sudo tee -a /etc/apt/sources.list
+
+# Install Packages
 cd ~/
 
 # Update and install essential system packages
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y \
-    emacs \
     bat \
     alacritty \
     exa \
@@ -32,6 +35,8 @@ sudo apt install -y \
     syncthingtray \
     golang-go \
     ansifilter 
+
+sudo apt -t bookworm-backports install emacs
 
 # Atuin Install
 bash -c "curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh"
