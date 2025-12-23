@@ -110,6 +110,7 @@ ln -s ~/.dotfiles/Zsh/.zshrc ~/.zshrc
 rm ~/.config/doom/*.el
 ln -s ~/.dotfiles/Doom/*.el ~/.config/doom
 ln -s ~/.dotfiles/Tmux/.tmux.conf ~/.tmux.conf
+ln -s ~/.dotfiles/alacritty/alacritty.toml ~/.config
 cd
 ./.config/emacs/bin/doom sync
 
