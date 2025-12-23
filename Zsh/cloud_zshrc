@@ -1,4 +1,5 @@
 # ~/.zshrc: executed by zsh for interactive shells.
+ZSH_THEME="jonathan"
 
 # Location of starship config File
 export STARSHIP_CONFIG="$HOME/.config/starship/starship.toml"

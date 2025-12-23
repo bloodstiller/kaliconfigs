@@ -2,19 +2,30 @@
 - [ ] Setup Syncthing [0/2]
   - [ ] Notes ~/Notes
   - [ ] Org ~/Org
-- [ ] Setup Git [0/1]
-  - [ ] Keys
-- [ ] Download Repos:
+- [X] Setup Git [1/1]
+  - [X] Keys
+- [X] Download Repos:
   #+begin_src shell
 #Templates
-git@github.com:bloodstiller/Templates.git ~/Templates
+git clone git@github.com:bloodstiller/Templates.git ~/Templates
 
 #Blog
-git@github.com:bloodstiller/bloodstiller.com.git ~/Blog
+git clone git@github.com:bloodstiller/bloodstiller.com.git ~/Blog
 
 #Content
-git@github.com:bloodstiller/content.git ~/Content
+git clone git@github.com:bloodstiller/content.git ~/Content
   #+end_src
+
+- Shortcuts: 
+  - [ ] thunar
+    - SUPER + F
+  - [ ] emacs
+    - SUPER + E
+  - [ ] flameshot gui
+    - printscreen
+    - ctrl + printscreen
+  - [ ] alacritty 
+    - SUPER + T
   
     
 
