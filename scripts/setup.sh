@@ -37,7 +37,9 @@ sudo apt install -y \
     ansifilter \
     docker.io \
     docker-buildx \
-    docker-compose 
+    docker-compose \
+    hugo \ 
+    pandoc 
 
 # Start Docker
 sudo systemctl enable docker --now
