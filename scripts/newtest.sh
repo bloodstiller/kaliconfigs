@@ -32,6 +32,98 @@ sanitize_name() {
     echo "$1" | tr ' ' '_' | tr -cd '[:alnum:]_-'
 }
 
+# Function to get cloud platform selection
+get_cloud_platforms() {
+    echo "" >&2
+    echo "Select Cloud Platform(s) to test:" >&2
+    echo "Enter platform codes separated by spaces (e.g., 'aws azure' or 'aws azure gcp')" >&2
+    echo "  aws   - Amazon Web Services" >&2
+    echo "  azure - Microsoft Azure" >&2
+    echo "  gcp   - Google Cloud Platform" >&2
+    echo "" >&2
+    read -p "Enter platform(s): " cloud_input
+    
+    # Convert to lowercase
+    cloud_input=$(echo "$cloud_input" | tr '[:upper:]' '[:lower:]')
+    
+    # Validate platforms
+    local valid_platforms=""
+    for platform in $cloud_input; do
+        case $platform in
+            aws|azure|gcp)
+                valid_platforms="$valid_platforms $platform"
+                ;;
+            *)
+                print_error "Invalid platform: $platform (valid options: aws, azure, gcp)"
+                return 1
+                ;;
+        esac
+    done
+    
+    # Trim leading space
+    valid_platforms=$(echo "$valid_platforms" | sed 's/^ //')
+    
+    if [ -z "$valid_platforms" ]; then
+        print_error "No valid cloud platforms selected!"
+        return 1
+    fi
+    
+    # Return platforms as space-separated string
+    echo "$valid_platforms"
+    return 0
+}
+
+# Function to copy cloud templates based on selected platforms
+copy_cloud_templates() {
+    local platforms="$1"
+    local success=true
+    
+    for platform in $platforms; do
+        local platform_upper=$(echo "$platform" | tr '[:lower:]' '[:upper:]')
+        local template_file=""
+        local dest_file=""
+        
+        case $platform in
+            aws)
+                template_file="$TEMPLATE_BASE/CloudTestTemplate/AWSTemplate.org"
+                dest_file="$main_path/${job_name}_${job_number}_AWS_pentest_checklist.org"
+                ;;
+            azure)
+                template_file="$TEMPLATE_BASE/CloudTestTemplate/AzureTemplate.org"
+                dest_file="$main_path/${job_name}_${job_number}_Azure_pentest_checklist.org"
+                ;;
+            gcp)
+                template_file="$TEMPLATE_BASE/CloudTestTemplate/GCPTemplate.org"
+                dest_file="$main_path/${job_name}_${job_number}_GCP_pentest_checklist.org"
+                ;;
+        esac
+        
+        if [ -f "$template_file" ]; then
+            cp "$template_file" "$dest_file"
+            print_success "Copied $platform_upper template"
+        else
+            print_error "$platform_upper template not found: $template_file"
+            success=false
+        fi
+    done
+    
+    if [ "$success" = false ]; then
+        return 1
+    fi
+    return 0
+}
+
+# Function to create cloud scan folders
+create_cloud_folders() {
+    local platforms="$1"
+    
+    for platform in $platforms; do
+        local platform_upper=$(echo "$platform" | tr '[:lower:]' '[:upper:]')
+        mkdir -p "$scans_path/$platform_upper"
+        print_success "Created cloud subfolder: scans/$platform_upper"
+    done
+}
+
 # Prompt for job details
 echo "========================================="
 echo "   Penetration Test Template Creator"
@@ -76,6 +168,18 @@ case $test_type in
     *)
         print_error "Invalid test type selected!"
         exit 1
+        ;;
+esac
+
+# Get cloud platforms if cloud testing is selected
+cloud_platforms=""
+case $test_type in
+    3|5|6|7)
+        cloud_platforms=$(get_cloud_platforms)
+        if [ $? -ne 0 ]; then
+            exit 1
+        fi
+        print_info "Selected cloud platforms: $cloud_platforms"
         ;;
 esac
 
@@ -127,11 +231,7 @@ scan_folders=("nmap" "nessus" "nikto" "burpsuite" "wordpress" "nuclei")
 # Add cloud folders if cloud test is selected
 case $test_type in
     3|5|6|7)
-        cloud_folders=("AWS" "Azure" "GCP")
-        for folder in "${cloud_folders[@]}"; do
-            mkdir -p "$scans_path/$folder"
-            print_success "Created cloud subfolder: scans/$folder"
-        done
+        create_cloud_folders "$cloud_platforms"
         ;;
 esac
 
@@ -173,15 +273,7 @@ case $test_type in
         ;;
     3)
         # Cloud test only
-        source_file="$TEMPLATE_BASE/CloudTestTemplate/CloudTest_Pentest_Template.org"
-        dest_file="$main_path/${job_name}_${job_number}_cloud_pentest_checklist.org"
-        
-        if [ -f "$source_file" ]; then
-            cp "$source_file" "$dest_file"
-            print_success "Copied Cloud Penetration Test template to: $dest_file"
-        else
-            print_error "Template not found: $source_file"
-        fi
+        copy_cloud_templates "$cloud_platforms"
         ;;
     4)
         # Infrastructure + Web Application
@@ -221,15 +313,7 @@ case $test_type in
         fi
         
         # Cloud
-        source_file="$TEMPLATE_BASE/CloudTestTemplate/CloudTest_Pentest_Template.org"
-        dest_file="$main_path/${job_name}_${job_number}_cloud_pentest_checklist.org"
-        
-        if [ -f "$source_file" ]; then
-            cp "$source_file" "$dest_file"
-            print_success "Copied Cloud Penetration Test template"
-        else
-            print_error "Cloud template not found: $source_file"
-        fi
+        copy_cloud_templates "$cloud_platforms"
         ;;
     6)
         # Web Application + Cloud
@@ -245,15 +329,7 @@ case $test_type in
         fi
         
         # Cloud
-        source_file="$TEMPLATE_BASE/CloudTestTemplate/CloudTest_Pentest_Template.org"
-        dest_file="$main_path/${job_name}_${job_number}_cloud_pentest_checklist.org"
-        
-        if [ -f "$source_file" ]; then
-            cp "$source_file" "$dest_file"
-            print_success "Copied Cloud Penetration Test template"
-        else
-            print_error "Cloud template not found: $source_file"
-        fi
+        copy_cloud_templates "${cloud_platforms[@]}"
         ;;
     7)
         # All three templates
@@ -280,15 +356,7 @@ case $test_type in
         fi
         
         # Cloud
-        source_file="$TEMPLATE_BASE/CloudTestTemplate/CloudTest_Pentest_Template.org"
-        dest_file="$main_path/${job_name}_${job_number}_cloud_pentest_checklist.org"
-        
-        if [ -f "$source_file" ]; then
-            cp "$source_file" "$dest_file"
-            print_success "Copied Cloud Penetration Test template"
-        else
-            print_error "Cloud template not found: $source_file"
-        fi
+        copy_cloud_templates "${cloud_platforms[@]}"
         ;;
 esac
 
@@ -320,7 +388,7 @@ touch "$main_path/TODO_${job_name}_${job_number}.org"
 print_success "Created TODO_${job_name}_${job_number}.org file"
 
 touch "$main_path/NOTES_${job_name}_${job_number}.org"
-print_success "Created Notes_${job_name}_${job_number}.org file"
+print_success "Created NOTES_${job_name}_${job_number}.org file"
 
 echo ""
 print_success "Test environment created successfully!"
