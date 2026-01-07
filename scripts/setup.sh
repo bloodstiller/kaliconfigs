@@ -39,7 +39,9 @@ sudo apt install -y \
     docker-buildx \
     docker-compose \
     hugo \ 
-    pandoc 
+    pandoc \
+    codelite
+
 
 # Start Docker
 sudo systemctl enable docker --now
