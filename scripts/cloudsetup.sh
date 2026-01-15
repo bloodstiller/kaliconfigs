@@ -81,6 +81,8 @@ rm Iosevka.zip CommitMono.zip
 
 # Refresh font cache
 fc-cache -fv
+# upgrade packages
+pipx upgrade-all
 
 
 # Configure Dots
