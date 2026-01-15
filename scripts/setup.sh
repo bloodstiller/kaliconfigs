@@ -108,6 +108,10 @@ rm Iosevka.zip CommitMono.zip
 # Refresh font cache
 fc-cache -fv
 
+# Get kerbrute
+wget -q https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_linux_amd64 -O "$HOME"/.local/bin/kerbrute
+chmod +x ~/.local/bin/kerbrute
+
 
 # Configure Dots
 rm ~/.zshrc
