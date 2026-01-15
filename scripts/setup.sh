@@ -38,6 +38,7 @@ sudo apt install -y \
     docker.io \
     docker-buildx \
     docker-compose \
+    ntpsec-ntpdate \
     hugo \ 
     pandoc \
     codelite
