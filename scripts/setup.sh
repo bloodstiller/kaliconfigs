@@ -112,6 +112,9 @@ fc-cache -fv
 wget -q https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_linux_amd64 -O "$HOME"/.local/bin/kerbrute
 chmod +x ~/.local/bin/kerbrute
 
+# Get statistically likely usernames
+sudo git clone https://github.com/insidetrust/statistically-likely-usernames.git /usr/share/wordlists/statistically-likely-usernames
+
 
 # Configure Dots
 rm ~/.zshrc
@@ -120,6 +123,7 @@ rm ~/.config/doom/*.el
 ln -s ~/.dotfiles/Doom/*.el ~/.config/doom
 ln -s ~/.dotfiles/Tmux/.tmux.conf ~/.tmux.conf
 ln -s ~/.dotfiles/alacritty/alacritty.toml ~/.config
+ln -s /usr/share/wordlists ~/Wordlists
 cd
 ./.config/emacs/bin/doom sync
 
