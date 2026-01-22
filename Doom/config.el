@@ -415,10 +415,26 @@
 
 ;; Set these *before* loading org-roam
 (require 'org-roam)
-(setq org-roam-directory "~/Notes")
+;;(setq org-roam-directory "~/Notes")
+
+;;(after! org-roam
+;;  (setq org-roam-list-files-commands '(find fd fdfind rg))
+;;  (setq org-roam-db-update-method 'immediate))
 
 (after! org-roam
-  (setq org-roam-list-files-commands '(find fd fdfind rg)))
+  (setq org-roam-directory "~/Notes"
+        org-roam-db-location "~/.cache/org-roam/org-roam.db"
+        org-roam-db-update-method 'immediate
+        org-roam-list-files-commands '(fd)
+        org-roam-file-extensions '("org")
+        org-roam-file-exclude-regexp
+        '("/screenshots/"
+          "/markdown/"
+          "/\\.stfolder/"
+          "/\\.stversions/"
+          "/\\.git/")))
+
+(setq find-file-visit-truename nil)
 
 ;Roam - Capture Templates:
 (setq org-roam-capture-templates
