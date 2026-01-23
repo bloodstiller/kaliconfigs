@@ -122,7 +122,8 @@ ln -s ~/.dotfiles/Zsh/.zshrc ~/.zshrc
 rm ~/.config/doom/*.el
 ln -s ~/.dotfiles/Doom/*.el ~/.config/doom
 ln -s ~/.dotfiles/Tmux/.tmux.conf ~/.tmux.conf
-ln -s ~/.dotfiles/alacritty/alacritty.toml ~/.config
+mkdir ~/.config/alacritty/
+ln -s ~/.dotfiles/alacritty/alacritty.toml ~/.config/alacritty/
 ln -s /usr/share/wordlists ~/Wordlists
 cd
 ./.config/emacs/bin/doom sync
