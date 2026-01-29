@@ -424,7 +424,7 @@
 (after! org-roam
   (setq org-roam-directory "~/Notes"
         org-roam-db-location "~/.cache/org-roam/org-roam.db"
-        org-roam-db-update-method 'immediate
+        ;;org-roam-db-update-method 'immediate
         org-roam-list-files-commands '(fd)
         org-roam-file-extensions '("org")
         org-roam-file-exclude-regexp

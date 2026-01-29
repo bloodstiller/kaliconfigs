@@ -62,6 +62,12 @@ sudo ln -s ~/go/bin/katana /usr/local/bin/katana
 #Install Waymore
 pipx install git+https://github.com/xnl-h4ck3r/waymore.git
 
+
+#Install bbot
+git clone https://github.com/blacklanternsecurity/bbot && cd bbot
+./bbot-docker.sh --help
+sudo ln -s ~/bbot/bbot-docker.sh /usr/bin/bbot
+
 # Install Oh My Zsh without launching Zsh or changing shell automatically
 export RUNZSH=no CHSH=no
 sh -c "$(wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
