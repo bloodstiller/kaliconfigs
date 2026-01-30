@@ -170,6 +170,7 @@ alias doom='~/.config/emacs/bin/doom'
 alias dt='~/.dotfiles'
 alias blog='~/Blog'
 
+
 # URL decode function using Python3
 alias urldecode='python3 -c "import sys, urllib.parse as ul; \
     print(ul.unquote_plus(sys.argv[1]))"'
@@ -180,6 +181,9 @@ alias urlencode='python3 -c "import sys, urllib.parse as ul; \
 
 # Set HTB base folder
 alias bx='/home/kali/Content/Walkthroughs/Boxes/BlogEntriesMade/Baby'  
+
+# Set engagement Root
+alias en='cd "/home/kali/VMShare/Work/Tests/2026"'
 
 # Export the IP address of a target box
 export box="10.129.108.128"
@@ -252,6 +256,16 @@ fi
 
 # Run the watch_myip function in the background
 watch_myip & disown
+
+#Convert txt to md
+txtlog2md() {
+  setopt localoptions nullglob
+  local files=( *.txt *.log )
+  (( ${#files} )) || { echo "No .txt or .log files found."; return 1; }
+  for f in $files; do
+    mv -- "$f" "${f%.*}.md"
+  done
+}
 
 
 # Auto Tmux Logging:

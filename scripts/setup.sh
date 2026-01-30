@@ -41,6 +41,7 @@ sudo apt install -y \
     ntpsec-ntpdate \
     hugo \ 
     pandoc \
+    awscli \
     codelite
 
 
@@ -62,11 +63,18 @@ sudo ln -s ~/go/bin/katana /usr/local/bin/katana
 #Install Waymore
 pipx install git+https://github.com/xnl-h4ck3r/waymore.git
 
-
 #Install bbot
 git clone https://github.com/blacklanternsecurity/bbot && cd bbot
 ./bbot-docker.sh --help
 sudo ln -s ~/bbot/bbot-docker.sh /usr/bin/bbot
+
+### Cloud Tools
+# Install cloudfox
+go install github.com/BishopFox/cloudfox@latest
+# Install scoutsuite
+pipx install scoutsuite
+# Install prowler
+pipx install prowler
 
 # Install Oh My Zsh without launching Zsh or changing shell automatically
 export RUNZSH=no CHSH=no
