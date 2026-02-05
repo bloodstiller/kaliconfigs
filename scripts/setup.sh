@@ -71,10 +71,23 @@ sudo ln -s ~/bbot/bbot-docker.sh /usr/bin/bbot
 ### Cloud Tools
 # Install cloudfox
 go install github.com/BishopFox/cloudfox@latest
+sudo ln -s ~/go/bin/cloudfox /usr/bin/cloudfox     
 # Install scoutsuite
 pipx install scoutsuite
+sudo ln -s /home/kali/.local/share/pipx/venvs/scoutsuite/bin/scout /usr/bin/scout 
 # Install prowler
 pipx install prowler
+
+# Install pmapper
+git clone git@github.com:nccgroup/PMapper.git ~/pmapper
+cd pmapper
+python3 -m venv venv
+source venv/bin/activate
+pip install .
+deactivate
+
+cd ~/
+
 
 # Install Oh My Zsh without launching Zsh or changing shell automatically
 export RUNZSH=no CHSH=no

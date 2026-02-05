@@ -16,15 +16,17 @@ title = "Alacritty"
 
 [font]
 size = 13.5
-
   [font.bold]
   style = "Bold"
+  family = "CommitMono Nerd Font"
 
   [font.bold_italic]
   style = "Mono Bold"
+  family = "Iosevka Nerd Font"
 
   [font.italic]
   style = "Mono Bold"
+  family = "Iosevka Nerd Font"
 
   [font.normal]
 
