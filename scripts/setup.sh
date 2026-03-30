@@ -39,7 +39,7 @@ sudo apt install -y \
     docker-buildx \
     docker-compose \
     ntpsec-ntpdate \
-    hugo \ 
+    hugo \
     pandoc \
     awscli \
     codelite
@@ -54,7 +54,6 @@ sudo usermod -aG docker $USER
 # Install Nuclei
 go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
 sudo ln -s ~/go/bin/nuclei /usr/local/bin/nuclei 
-git clone https://github.com/bloodstiller/nuclei-templates.git ~/nuclei-templates/
 
 #Install katana
 CGO_ENABLED=1 go install github.com/projectdiscovery/katana/cmd/katana@latest
@@ -72,19 +71,24 @@ sudo ln -s ~/bbot/bbot-docker.sh /usr/bin/bbot
 # Install cloudfox
 go install github.com/BishopFox/cloudfox@latest
 sudo ln -s ~/go/bin/cloudfox /usr/bin/cloudfox     
+
 # Install scoutsuite
 pipx install scoutsuite
 sudo ln -s /home/kali/.local/share/pipx/venvs/scoutsuite/bin/scout /usr/bin/scout 
+
 # Install prowler
 pipx install prowler
 
 # Install pmapper
-git clone git@github.com:nccgroup/PMapper.git ~/pmapper
-cd pmapper
+git clone https://github.com/nccgroup/PMapper.git ~/pmapper
+cd ~/pmapper
 python3 -m venv venv
 source venv/bin/activate
 pip install .
 deactivate
+
+# Install roadtools
+pipx install roadrecon
 
 cd ~/
 
@@ -142,6 +146,9 @@ chmod +x ~/.local/bin/kerbrute
 # Get statistically likely usernames
 sudo git clone https://github.com/insidetrust/statistically-likely-usernames.git /usr/share/wordlists/statistically-likely-usernames
 
+# Install tmux plugins
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+ 
 
 # Configure Dots
 rm ~/.zshrc

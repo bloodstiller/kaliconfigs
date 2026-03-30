@@ -49,7 +49,6 @@
 #+begin_src emacs-lisp
 (setq user-full-name "bloodstiller")
 #+end_src
-
 *** Set line Numbers:
 :PROPERTIES:
 :ID:       18a53005-4942-4a48-a723-e2cc16ab8548
