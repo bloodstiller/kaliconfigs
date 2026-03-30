@@ -152,10 +152,10 @@ echo "postfix postfix/main_mailer_type select No configuration" | sudo debconf-s
 section "System Update & Core Packages" "📦"
 spin "apt update & upgrade"        sudo apt-get update -qq
 spin "install core packages"       sudo apt-get install -y -qq \
-    emacs exa bat ripgrep git tmux gnupg unzip fonts-firacode \
+    emacs eza bat ripgrep git tmux gnupg unzip fonts-firacode \
     python3-argcomplete atuin flameshot syncthing syncthingtray \
     golang-go ansifilter docker.io docker-buildx docker-compose \
-    ntpsec-ntpdate hugo pandoc awscli codelite
+    ntpsec-ntpdate hugo pandoc awscli codelite pyenv
 
 # ══════════════════════════════════════════════════════════════════════════════
 
