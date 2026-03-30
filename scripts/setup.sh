@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 set -e
 
@@ -9,22 +9,37 @@ ESC=$(printf '\033')
 RESET="${ESC}[0m"
 BOLD="${ESC}[1m"
 DIM="${ESC}[2m"
-
 RED="${ESC}[31m"
 GREEN="${ESC}[32m"
 YELLOW="${ESC}[33m"
 CYAN="${ESC}[36m"
-
-BG_RED="${ESC}[41m"
 BG_GREEN="${ESC}[42m"
 BG_BLUE="${ESC}[44m"
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  STEP TRACKING
 # ══════════════════════════════════════════════════════════════════════════════
-TOTAL_STEPS=16
+TOTAL_STEPS=18
 CURRENT_STEP=0
 SCRIPT_START=$(date +%s)
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  LOG FILE — all command output written here, terminal stays clean
+# ══════════════════════════════════════════════════════════════════════════════
+LOG="$HOME/setup-$(date +%Y%m%d-%H%M%S).log"
+touch "$LOG"
+log() { printf "[%s] %s\n" "$(date +%H:%M:%S)" "$*" >> "$LOG"; }
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  CHECKPOINT SYSTEM
+#  Each section marks itself done on completion.
+#  Re-running the script skips already-completed sections automatically.
+#  To start completely fresh: rm -rf ~/.setup_checkpoints
+# ══════════════════════════════════════════════════════════════════════════════
+CHECKPOINT_DIR="$HOME/.setup_checkpoints"
+mkdir -p "$CHECKPOINT_DIR"
+is_done()   { [ -f "$CHECKPOINT_DIR/$1" ]; }
+mark_done() { touch "$CHECKPOINT_DIR/$1"; log "CHECKPOINT: $1 complete"; }
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  OUTPUT HELPERS
@@ -47,82 +62,98 @@ EOF
 }
 
 _progress_bar() {
-    step=$1
-    total=$2
-    width=40
-    filled=$(( step * width / total ))
-    empty=$(( width - filled ))
-    bar=""
-    i=0
+    local step=$1 total=$2 width=40
+    local filled=$(( step * width / total ))
+    local empty=$(( width - filled ))
+    local bar="" i=0
     while [ $i -lt $filled ]; do bar="${bar}█"; i=$(( i + 1 )); done
     i=0
     while [ $i -lt $empty ];  do bar="${bar}░"; i=$(( i + 1 )); done
-    pct=$(( step * 100 / total ))
+    local pct=$(( step * 100 / total ))
     printf "  ${DIM}[${RESET}${CYAN}${bar}${RESET}${DIM}]${RESET} ${BOLD}%3d%%${RESET}  ${DIM}step %d/%d${RESET}" \
         "$pct" "$step" "$total"
 }
 
 section() {
     CURRENT_STEP=$(( CURRENT_STEP + 1 ))
-    label="$1"
-    icon="$2"
-    elapsed=$(( $(date +%s) - SCRIPT_START ))
+    local label="$1" icon="$2"
+    local elapsed=$(( $(date +%s) - SCRIPT_START ))
+    local elapsed_fmt
     elapsed_fmt=$(printf '%dm%02ds' $(( elapsed / 60 )) $(( elapsed % 60 )))
     printf "\n"
     printf "  ${BOLD}${BG_BLUE}  %s  %s  ${RESET}  ${DIM}+%s${RESET}\n" "$icon" "$label" "$elapsed_fmt"
     printf "  "
     _progress_bar "$CURRENT_STEP" "$TOTAL_STEPS"
     printf "\n\n"
+    log "SECTION $CURRENT_STEP/$TOTAL_STEPS: $label"
 }
 
-ok()   { printf "    ${GREEN}✔${RESET}  %s\n" "$1"; }
-info() { printf "    ${CYAN}→${RESET}  %s\n" "$1"; }
-warn() { printf "    ${YELLOW}⚠${RESET}  %s\n" "$1"; }
+ok()   { printf "    ${GREEN}✔${RESET}  %s\n" "$1"; log "OK: $1"; }
+info() { printf "    ${CYAN}→${RESET}  %s\n" "$1"; log "INFO: $1"; }
+warn() { printf "    ${YELLOW}⚠${RESET}  %s\n" "$1"; log "WARN: $1"; }
 
 spin() {
-    label="$1"; shift
-    spin_chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
-    i=0
+    local label="$1"; shift
+    local spin_chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    local i=0
+    local tmpout
     tmpout=$(mktemp)
-    "$@" >"$tmpout" 2>&1 &
-    cmd_pid=$!
+    log "RUN: $label — $*"
+    "$@" >>"$tmpout" 2>&1 &
+    local cmd_pid=$!
     while kill -0 "$cmd_pid" 2>/dev/null; do
-        pos=$(( (i % 10) + 1 ))
+        local pos=$(( (i % 10) + 1 ))
+        local c
         c=$(printf '%s' "$spin_chars" | cut -c${pos})
         printf "    ${CYAN}%s${RESET}  ${DIM}%s...${RESET}\r" "$c" "$label"
         i=$(( i + 1 ))
         sleep 0.1
     done
-    wait "$cmd_pid"; rc=$?
+    wait "$cmd_pid"; local rc=$?
+    cat "$tmpout" >> "$LOG"
     if [ $rc -eq 0 ]; then
         printf "    ${GREEN}✔${RESET}  %-55s\n" "$label"
+        log "OK: $label"
     else
         printf "    ${RED}✘${RESET}  %-55s\n" "$label"
         printf "\n${RED}  ── Error output ───────────────────────────────────────${RESET}\n"
         cat "$tmpout" | sed 's/^/  /'
-        printf "${RED}  ────────────────────────────────────────────────────────${RESET}\n\n"
+        printf "${RED}  ────────────────────────────────────────────────────────${RESET}\n"
+        printf "  ${DIM}Full log: %s${RESET}\n\n" "$LOG"
+        log "FAIL: $label"
     fi
     rm -f "$tmpout"
     return $rc
 }
 
 spin_soft() {
-    label="$1"; shift
+    local label="$1"; shift
     spin "$label" "$@" || warn "$label failed (non-fatal, continuing)"
 }
 
 safe_link() {
-    src="$1"; dest="$2"
+    local src="$1" dest="$2"
     if [ -e "$dest" ] || [ -L "$dest" ]; then sudo rm -f "$dest"; fi
     sudo ln -s "$src" "$dest"
     ok "linked $(basename "$src") → $dest"
 }
 
 safe_link_user() {
-    src="$1"; dest="$2"
+    local src="$1" dest="$2"
     if [ -e "$dest" ] || [ -L "$dest" ]; then rm -f "$dest"; fi
     ln -s "$src" "$dest"
     ok "linked $(basename "$src") → $dest"
+}
+
+skip_section() {
+    CURRENT_STEP=$(( CURRENT_STEP + 1 ))
+    local label="$1" icon="$2"
+    printf "\n"
+    printf "  ${DIM}${BG_BLUE}  %s  %s  ${RESET}  ${DIM}(already done — skipping)${RESET}\n" "$icon" "$label"
+    printf "  "
+    _progress_bar "$CURRENT_STEP" "$TOTAL_STEPS"
+    printf "\n"
+    log "SKIP: $label"
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -142,203 +173,401 @@ sudo -v
 (while true; do sudo -v; sleep 50; done) &
 SUDO_KEEPALIVE_PID=$!
 
-trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null; printf "\n${RED}  ✘  Script interrupted.\n${RESET}"' EXIT INT TERM
+trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null; printf "\n${RED}  ✘  Script interrupted. Log: '"$LOG"'\n${RESET}"' EXIT INT TERM
 
 export DEBIAN_FRONTEND=noninteractive
 echo "postfix postfix/main_mailer_type select No configuration" | sudo debconf-set-selections >/dev/null 2>&1
 
-# ══════════════════════════════════════════════════════════════════════════════
-
-section "System Update & Core Packages" "📦"
-spin "apt update & upgrade"        sudo apt-get update -qq
-spin "install core packages"       sudo apt-get install -y -qq \
-    emacs eza bat ripgrep git tmux gnupg unzip fonts-firacode \
-    python3-argcomplete atuin flameshot syncthing syncthingtray \
-    golang-go ansifilter docker.io docker-buildx docker-compose \
-    ntpsec-ntpdate hugo pandoc awscli codelite pyenv
+printf "  ${DIM}Log file: %s${RESET}\n\n" "$LOG"
 
 # ══════════════════════════════════════════════════════════════════════════════
 
-section "Docker Setup" "🐳"
-spin "enable & start Docker"       sudo systemctl enable docker --now
-spin "add $USER to docker group"   sudo usermod -aG docker "$USER"
-
-# ══════════════════════════════════════════════════════════════════════════════
-
-section "Go Tools — Nuclei & Katana" "⚡"
-spin "install nuclei"              go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
-safe_link "$HOME/go/bin/nuclei" /usr/local/bin/nuclei
-
-spin "install katana"              sh -c 'CGO_ENABLED=1 go install github.com/projectdiscovery/katana/cmd/katana@latest'
-safe_link "$HOME/go/bin/katana" /usr/local/bin/katana
-
-# ══════════════════════════════════════════════════════════════════════════════
-
-section "Cloud Tools" "☁️"
-spin "install cloudfox"            go install github.com/BishopFox/cloudfox@latest
-safe_link "$HOME/go/bin/cloudfox" /usr/bin/cloudfox
-
-spin "install scoutsuite"          pipx install scoutsuite
-safe_link "$HOME/.local/share/pipx/venvs/scoutsuite/bin/scout" /usr/bin/scout
-
-spin "install prowler"             pipx install prowler
-spin "install roadrecon"           pipx install roadrecon
-
-# ══════════════════════════════════════════════════════════════════════════════
-
-section "Waymore" "🌊"
-spin "install waymore"             pipx install git+https://github.com/xnl-h4ck3r/waymore.git
-
-# ══════════════════════════════════════════════════════════════════════════════
-
-section "bbot" "🤖"
-if [ ! -d "$HOME/bbot" ]; then
-    spin "clone bbot"              git clone https://github.com/blacklanternsecurity/bbot "$HOME/bbot"
+if is_done "scaffold"; then
+    skip_section "Directory Scaffold" "📂"
 else
-    info "bbot already cloned — skipping"
-fi
-
-if [ -f "$HOME/bbot/bbot-docker.sh" ]; then
-    chmod +x "$HOME/bbot/bbot-docker.sh"
-    safe_link "$HOME/bbot/bbot-docker.sh" /usr/bin/bbot
-else
-    warn "bbot-docker.sh not found — check $HOME/bbot manually"
+    section "Directory Scaffold" "📂"
+    mkdir -p "$HOME/Tools" "$HOME/Engagements"
+    ok "created ~/Tools"
+    ok "created ~/Engagements"
+    mark_done "scaffold"
 fi
 
 # ══════════════════════════════════════════════════════════════════════════════
 
-section "PMapper" "📐"
-if [ ! -d "$HOME/pmapper" ]; then
-    spin "clone PMapper"           git clone https://github.com/nccgroup/PMapper.git "$HOME/pmapper"
+if is_done "apt"; then
+    skip_section "System Update & Core Packages" "📦"
 else
-    info "PMapper already cloned — skipping"
+    section "System Update & Core Packages" "📦"
+    spin "apt update & upgrade"    sudo apt-get update -qq
+    spin "install core packages"   sudo apt-get install -y -qq \
+        emacs eza bat ripgrep git tmux gnupg unzip fonts-firacode \
+        python3-argcomplete atuin flameshot syncthing syncthingtray \
+        golang-go ansifilter docker.io docker-buildx docker-compose \
+        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv alacritty
+    mark_done "apt"
 fi
-cd "$HOME/pmapper"
-spin "create venv"                 python3 -m venv venv
-spin "pip install"                 sh -c '. venv/bin/activate && pip install . -q && deactivate'
-cd "$HOME"
 
 # ══════════════════════════════════════════════════════════════════════════════
 
-section "Oh My Zsh & Plugins" "🐚"
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    spin "install oh-my-zsh" \
-        sh -c 'RUNZSH=no CHSH=no sh -c "$(wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"'
+if is_done "docker"; then
+    skip_section "Docker Setup" "🐳"
 else
-    info "oh-my-zsh already installed — skipping"
+    section "Docker Setup" "🐳"
+    spin "enable & start Docker"   sudo systemctl enable docker --now
+    spin "add $USER to docker group" sudo usermod -aG docker "$USER"
+    mark_done "docker"
 fi
 
-ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-mkdir -p "$ZSH_CUSTOM/plugins"
+# ══════════════════════════════════════════════════════════════════════════════
+# Export Go path so all go install commands work regardless of login shell state
+export PATH="$PATH:$HOME/go/bin"
 
-_zsh_plugin() {
-    name="$1"; url="$2"; dest="$ZSH_CUSTOM/plugins/$name"
-    if [ ! -d "$dest" ]; then
-        spin "plugin: $name"       git clone --depth 1 "$url" "$dest"
+if is_done "go_tools"; then
+    skip_section "Go Tools — Nuclei & Katana" "⚡"
+else
+    section "Go Tools — Nuclei & Katana" "⚡"
+    spin "install nuclei"          go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+    safe_link "$HOME/go/bin/nuclei" /usr/local/bin/nuclei
+
+    spin "install katana"          bash -c 'CGO_ENABLED=1 go install github.com/projectdiscovery/katana/cmd/katana@latest'
+    safe_link "$HOME/go/bin/katana" /usr/local/bin/katana
+    mark_done "go_tools"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "cloud_tools"; then
+    skip_section "Cloud Tools" "☁️"
+else
+    section "Cloud Tools" "☁️"
+    spin "install cloudfox"        go install github.com/BishopFox/cloudfox@latest
+    safe_link "$HOME/go/bin/cloudfox" /usr/bin/cloudfox
+
+    spin "install scoutsuite"      pipx install scoutsuite
+    safe_link "$HOME/.local/share/pipx/venvs/scoutsuite/bin/scout" /usr/bin/scout
+
+    spin "install prowler"         pipx install prowler
+    spin "install roadrecon"       pipx install roadrecon
+    mark_done "cloud_tools"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "waymore"; then
+    skip_section "Waymore" "🌊"
+else
+    section "Waymore" "🌊"
+    spin "install waymore"         pipx install git+https://github.com/xnl-h4ck3r/waymore.git
+    mark_done "waymore"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "bbot"; then
+    skip_section "bbot" "🤖"
+else
+    section "bbot" "🤖"
+    if [ ! -d "$HOME/bbot" ]; then
+        spin "clone bbot"          git clone https://github.com/blacklanternsecurity/bbot "$HOME/bbot"
     else
-        info "plugin $name already exists — skipping"
+        info "bbot already cloned — skipping clone"
     fi
-}
-_zsh_plugin zsh-syntax-highlighting   https://github.com/zsh-users/zsh-syntax-highlighting.git
-_zsh_plugin zsh-autosuggestions       https://github.com/zsh-users/zsh-autosuggestions
-_zsh_plugin fast-syntax-highlighting  https://github.com/zdharma-continuum/fast-syntax-highlighting.git
-_zsh_plugin zsh-autocomplete          https://github.com/marlonrichert/zsh-autocomplete.git
-
-# Kali ships with zsh as default — no chsh needed
-
-# ══════════════════════════════════════════════════════════════════════════════
-
-section "Dotfiles" "📁"
-if [ ! -d "$HOME/.dotfiles" ]; then
-    spin "clone kaliconfigs"       git clone https://github.com/bloodstiller/kaliconfigs.git "$HOME/.dotfiles"
-else
-    info "dotfiles already cloned — skipping"
+    if [ -f "$HOME/bbot/bbot-docker.sh" ]; then
+        chmod +x "$HOME/bbot/bbot-docker.sh"
+        safe_link "$HOME/bbot/bbot-docker.sh" /usr/bin/bbot
+    else
+        warn "bbot-docker.sh not found — check $HOME/bbot manually"
+    fi
+    mark_done "bbot"
 fi
 
 # ══════════════════════════════════════════════════════════════════════════════
 
-section "Doom Emacs" "☠️"
-if [ ! -d "$HOME/.config/emacs" ]; then
-    spin "clone doom emacs" \
-        git clone --depth 1 https://github.com/doomemacs/doomemacs "$HOME/.config/emacs"
+if is_done "pmapper"; then
+    skip_section "PMapper" "📐"
 else
-    info "doom emacs already cloned — skipping"
-fi
-printf "\n    ${DIM}Running doom install — this can take several minutes...${RESET}\n"
-"$HOME/.config/emacs/bin/doom" install
-ok "doom install complete"
-
-# ══════════════════════════════════════════════════════════════════════════════
-
-section "Nerd Fonts" "🔤"
-mkdir -p "$HOME/.local/share/fonts/nerd-fonts"
-cd /tmp
-spin "download Iosevka"            wget -q https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Iosevka.zip
-spin "download CommitMono"         wget -q https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CommitMono.zip
-spin "unzip Iosevka"               unzip -q Iosevka.zip    -d "$HOME/.local/share/fonts/nerd-fonts/Iosevka"
-spin "unzip CommitMono"            unzip -q CommitMono.zip -d "$HOME/.local/share/fonts/nerd-fonts/CommitMono"
-rm -f Iosevka.zip CommitMono.zip
-spin "refresh font cache"          fc-cache -fv
-cd "$HOME"
-
-# ══════════════════════════════════════════════════════════════════════════════
-
-section "Misc Security Tools" "🔧"
-mkdir -p "$HOME/.local/bin"
-spin "download kerbrute" \
-    wget -q https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_linux_amd64 \
-         -O "$HOME/.local/bin/kerbrute"
-chmod +x "$HOME/.local/bin/kerbrute"
-ok "kerbrute installed → ~/.local/bin/kerbrute"
-
-spin_soft "clone statistically-likely-usernames" \
-    sudo git clone https://github.com/insidetrust/statistically-likely-usernames.git \
-        /usr/share/wordlists/statistically-likely-usernames
-
-if [ ! -d "$HOME/.tmux/plugins/tpm" ]; then
-    spin "install tmux plugin manager" \
-        git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
-else
-    info "tpm already installed — skipping"
+    section "PMapper" "📐"
+    if [ ! -d "$HOME/pmapper" ]; then
+        spin "clone PMapper"       git clone https://github.com/nccgroup/PMapper.git "$HOME/pmapper"
+    else
+        info "PMapper already cloned — skipping clone"
+    fi
+    cd "$HOME/pmapper"
+    spin "create venv"             python3 -m venv venv
+    spin "pip install"             bash -c '. venv/bin/activate && pip install . -q && deactivate'
+    cd "$HOME"
+    mark_done "pmapper"
 fi
 
 # ══════════════════════════════════════════════════════════════════════════════
 
-section "Dotfile Symlinks" "🔗"
-safe_link_user "$HOME/.dotfiles/Zsh/.zshrc" "$HOME/.zshrc"
-
-rm -f "$HOME/.config/doom/"*.el
-for f in "$HOME/.dotfiles/Doom/"*.el; do
-    safe_link_user "$f" "$HOME/.config/doom/$(basename "$f")"
-done
-
-safe_link_user "$HOME/.dotfiles/Tmux/.tmux.conf"               "$HOME/.tmux.conf"
-mkdir -p "$HOME/.config/alacritty"
-safe_link_user "$HOME/.dotfiles/alacritty/alacritty.toml"      "$HOME/.config/alacritty/alacritty.toml"
-safe_link_user /usr/share/wordlists                             "$HOME/Wordlists"
-
-# ══════════════════════════════════════════════════════════════════════════════
-
-section "Doom Sync & Git Config" "🔄"
-printf "    ${DIM}Running doom sync...${RESET}\n"
-"$HOME/.config/emacs/bin/doom" sync
-ok "doom sync complete"
-spin "set git user.name"           git config --global user.name  "bloodstiller"
-spin "set git user.email"          git config --global user.email "bloodstiller@bloodstiller.com"
-
-# ══════════════════════════════════════════════════════════════════════════════
-
-section "VMware Shared Folder" "📂"
-sudo mkdir -p /mnt/hgfs
-spin_soft "mount vmhgfs" \
-    sudo vmhgfs-fuse .host:/ /mnt/hgfs -o allow_other -o uid=1000
-
-if mountpoint -q /mnt/hgfs 2>/dev/null; then
-    echo ".host:/ /mnt/hgfs fuse.vmhgfs-fuse allow_other,defaults 0 0" | sudo tee -a /etc/fstab >/dev/null
-    safe_link_user /mnt/hgfs/VMShare "$HOME/VMShare"
-    ok "VMware share mounted and fstab updated"
+if is_done "ohmyzsh"; then
+    skip_section "Oh My Zsh & Plugins" "🐚"
 else
-    warn "VMware share not available — skipping fstab & symlink"
+    section "Oh My Zsh & Plugins" "🐚"
+    if [ ! -d "$HOME/.oh-my-zsh" ]; then
+        spin "install oh-my-zsh" \
+            bash -c 'RUNZSH=no CHSH=no sh -c "$(wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"'
+    else
+        info "oh-my-zsh already installed — skipping"
+    fi
+
+    ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+    mkdir -p "$ZSH_CUSTOM/plugins"
+
+    _zsh_plugin() {
+        local name="$1" url="$2" dest="$ZSH_CUSTOM/plugins/$1"
+        if [ ! -d "$dest" ]; then
+            spin "plugin: $name"   git clone --depth 1 "$url" "$dest"
+        else
+            info "plugin $name already exists — skipping"
+        fi
+    }
+    _zsh_plugin zsh-syntax-highlighting   https://github.com/zsh-users/zsh-syntax-highlighting.git
+    _zsh_plugin zsh-autosuggestions       https://github.com/zsh-users/zsh-autosuggestions
+    _zsh_plugin fast-syntax-highlighting  https://github.com/zdharma-continuum/fast-syntax-highlighting.git
+    _zsh_plugin zsh-autocomplete          https://github.com/marlonrichert/zsh-autocomplete.git
+    # Kali ships with zsh as default — no chsh needed
+    mark_done "ohmyzsh"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "dotfiles"; then
+    skip_section "Dotfiles" "📁"
+else
+    section "Dotfiles" "📁"
+    if [ ! -d "$HOME/.dotfiles" ]; then
+        spin "clone kaliconfigs"   git clone https://github.com/bloodstiller/kaliconfigs.git "$HOME/.dotfiles"
+    else
+        info "dotfiles already cloned — skipping"
+    fi
+    mark_done "dotfiles"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "doom"; then
+    skip_section "Doom Emacs" "☠️"
+else
+    section "Doom Emacs" "☠️"
+    if [ ! -d "$HOME/.config/emacs" ]; then
+        spin "clone doom emacs" \
+            git clone --depth 1 https://github.com/doomemacs/doomemacs "$HOME/.config/emacs"
+    else
+        info "doom emacs already cloned — skipping"
+    fi
+    printf "\n    ${DIM}Running doom install — this can take several minutes...${RESET}\n\n"
+    "$HOME/.config/emacs/bin/doom" install
+    ok "doom install complete"
+    mark_done "doom"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "fonts"; then
+    skip_section "Nerd Fonts" "🔤"
+else
+    section "Nerd Fonts" "🔤"
+    mkdir -p "$HOME/.local/share/fonts/nerd-fonts"
+    cd /tmp
+    spin "download Iosevka"        wget -q https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Iosevka.zip
+    spin "download CommitMono"     wget -q https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CommitMono.zip
+    spin "unzip Iosevka"           unzip -q Iosevka.zip    -d "$HOME/.local/share/fonts/nerd-fonts/Iosevka"
+    spin "unzip CommitMono"        unzip -q CommitMono.zip -d "$HOME/.local/share/fonts/nerd-fonts/CommitMono"
+    rm -f Iosevka.zip CommitMono.zip
+    spin "refresh font cache"      fc-cache -fv
+    cd "$HOME"
+    mark_done "fonts"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "misc_tools"; then
+    skip_section "Misc Security Tools" "🔧"
+else
+    section "Misc Security Tools" "🔧"
+
+    mkdir -p "$HOME/.local/bin"
+
+    # Kerbrute
+    spin "download kerbrute" \
+        wget -q https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_linux_amd64 \
+             -O "$HOME/.local/bin/kerbrute"
+    chmod +x "$HOME/.local/bin/kerbrute"
+    ok "kerbrute installed → ~/.local/bin/kerbrute"
+
+    # Statistically likely usernames wordlist
+    if [ ! -d /usr/share/wordlists/statistically-likely-usernames ]; then
+        spin "clone statistically-likely-usernames" \
+            sudo git clone https://github.com/insidetrust/statistically-likely-usernames.git \
+                /usr/share/wordlists/statistically-likely-usernames
+    else
+        info "statistically-likely-usernames already present — skipping"
+    fi
+
+    # tmux plugin manager
+    if [ ! -d "$HOME/.tmux/plugins/tpm" ]; then
+        spin "install tmux plugin manager" \
+            git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+    else
+        info "tpm already installed — skipping"
+    fi
+
+    mark_done "misc_tools"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "ssh_key"; then
+    skip_section "SSH Key" "🔑"
+else
+    section "SSH Key" "🔑"
+    if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
+        spin "generate ed25519 SSH key" \
+            ssh-keygen -t ed25519 -C "bloodstiller@bloodstiller.com" -f "$HOME/.ssh/id_ed25519" -N ""
+        ok "SSH key generated → ~/.ssh/id_ed25519"
+        printf "\n    ${DIM}Public key:${RESET}\n"
+        cat "$HOME/.ssh/id_ed25519.pub" | sed 's/^/    /'
+        printf "\n"
+    else
+        info "SSH key already exists — skipping"
+    fi
+    mark_done "ssh_key"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "dotfile_links"; then
+    skip_section "Dotfile Symlinks" "🔗"
+else
+    section "Dotfile Symlinks" "🔗"
+    safe_link_user "$HOME/.dotfiles/Zsh/.zshrc"                    "$HOME/.zshrc"
+    rm -f "$HOME/.config/doom/"*.el
+    for f in "$HOME/.dotfiles/Doom/"*.el; do
+        safe_link_user "$f" "$HOME/.config/doom/$(basename "$f")"
+    done
+    safe_link_user "$HOME/.dotfiles/Tmux/.tmux.conf"               "$HOME/.tmux.conf"
+    mkdir -p "$HOME/.config/alacritty"
+    safe_link_user "$HOME/.dotfiles/alacritty/alacritty.toml"      "$HOME/.config/alacritty/alacritty.toml"
+    safe_link_user /usr/share/wordlists                             "$HOME/Wordlists"
+    mark_done "dotfile_links"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "doom_sync"; then
+    skip_section "Doom Sync & Git Config" "🔄"
+else
+    section "Doom Sync & Git Config" "🔄"
+    printf "    ${DIM}Running doom sync...${RESET}\n\n"
+    "$HOME/.config/emacs/bin/doom" sync
+    ok "doom sync complete"
+    spin "set git user.name"       git config --global user.name  "bloodstiller"
+    spin "set git user.email"      git config --global user.email "bloodstiller@bloodstiller.com"
+    mark_done "doom_sync"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "hacktricks_revshells"; then
+    skip_section "HackTricks & RevShells" "📖"
+else
+    section "HackTricks & RevShells" "📖"
+
+    # HackTricks — clone wiki into ~/Tools
+    if [ ! -d "$HOME/Tools/hacktricks" ]; then
+        spin "clone HackTricks wiki"   git clone https://github.com/HackTricks-wiki/hacktricks "$HOME/Tools/hacktricks"
+    else
+        info "HackTricks already cloned — skipping"
+    fi
+
+    # Reverse Shell Generator — clone and build Docker image into ~/Tools
+    if [ ! -d "$HOME/Tools/reverse-shell-generator" ]; then
+        spin "clone revshells"         git clone https://github.com/0dayCTF/reverse-shell-generator.git "$HOME/Tools/reverse-shell-generator"
+    else
+        info "revshells already cloned — skipping"
+    fi
+    spin "build revshells image"       sg docker -c "docker build -t reverse_shell_generator $HOME/Tools/reverse-shell-generator"
+
+    # ── Service launcher script ───────────────────────────────────────────────
+    cat > "$HOME/Tools/start-services.sh" << 'EOF'
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────
+#  Pentest Services Launcher — bloodstiller
+#  Usage: ./start-services.sh [start|stop|status]
+# ─────────────────────────────────────────────────────────
+
+ACTION="${1:-start}"
+HACKTRICKS_DIR="$HOME/Tools/hacktricks"
+
+case "$ACTION" in
+    start)
+        echo "🚀 Starting HackTricks on http://localhost:3337 ..."
+        docker run -d --rm --platform linux/amd64 \
+            -p 3337:3000 \
+            --name hacktricks \
+            -v "${HACKTRICKS_DIR}:/app" \
+            ghcr.io/hacktricks-wiki/hacktricks-cloud/translator-image \
+            bash -c "mkdir -p ~/.ssh && \
+                     ssh-keyscan -H github.com >> ~/.ssh/known_hosts && \
+                     cd /app && \
+                     git config --global --add safe.directory /app && \
+                     git checkout master && \
+                     git pull && \
+                     MDBOOK_PREPROCESSOR__HACKTRICKS__ENV=dev mdbook serve --hostname 0.0.0.0"
+
+        echo "🚀 Starting Reverse Shell Generator on http://localhost:9988 ..."
+        docker run -d --rm \
+            -p 9988:80 \
+            --name revshells \
+            reverse_shell_generator
+
+        echo ""
+        echo "  ✔  HackTricks   → http://localhost:3337  (allow ~5 min to build)"
+        echo "  ✔  RevShells    → http://localhost:9988"
+        echo ""
+        echo "  Stop with: $0 stop"
+        ;;
+    stop)
+        echo "🛑 Stopping services..."
+        docker stop hacktricks 2>/dev/null && echo "  ✔  HackTricks stopped" || echo "  ⚠  HackTricks was not running"
+        docker stop revshells  2>/dev/null && echo "  ✔  RevShells stopped"  || echo "  ⚠  RevShells was not running"
+        ;;
+    status)
+        echo "📊 Running pentest service containers:"
+        docker ps --filter name=hacktricks --filter name=revshells \
+            --format "  {{.Names}}\t{{.Status}}\t{{.Ports}}"
+        ;;
+    *)
+        echo "Usage: $0 [start|stop|status]"
+        exit 1
+        ;;
+esac
+EOF
+    chmod +x "$HOME/Tools/start-services.sh"
+    ok "launcher created → ~/Tools/start-services.sh"
+
+    mark_done "hacktricks_revshells"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+if is_done "vmware"; then
+    skip_section "VMware Shared Folder" "💾"
+else
+    section "VMware Shared Folder" "💾"
+    sudo mkdir -p /mnt/hgfs
+    spin_soft "mount vmhgfs" \
+        sudo vmhgfs-fuse .host:/ /mnt/hgfs -o allow_other -o uid=1000
+    if mountpoint -q /mnt/hgfs 2>/dev/null; then
+        echo ".host:/ /mnt/hgfs fuse.vmhgfs-fuse allow_other,defaults 0 0" | sudo tee -a /etc/fstab >/dev/null
+        safe_link_user /mnt/hgfs/VMShare "$HOME/VMShare"
+        ok "VMware share mounted and fstab updated"
+    else
+        warn "VMware share not available — skipping fstab & symlink"
+    fi
+    mark_done "vmware"
 fi
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -352,12 +581,20 @@ elapsed_total=$(( $(date +%s) - SCRIPT_START ))
 elapsed_fmt=$(printf '%dm%02ds' $(( elapsed_total / 60 )) $(( elapsed_total % 60 )))
 
 printf "\n"
-printf "  ${BOLD}${BG_GREEN}                                                    ${RESET}\n"
-printf "  ${BOLD}${BG_GREEN}   ✅  Setup complete in %-6s                     ${RESET}\n" "$elapsed_fmt"
-printf "  ${BOLD}${BG_GREEN}                                                    ${RESET}\n"
+printf "  ${BOLD}${BG_GREEN}                                                        ${RESET}\n"
+printf "  ${BOLD}${BG_GREEN}   ✅  Setup complete in %-6s                         ${RESET}\n" "$elapsed_fmt"
+printf "  ${BOLD}${BG_GREEN}                                                        ${RESET}\n"
 printf "\n"
 printf "  ${DIM}Next steps:${RESET}\n"
-printf "  ${CYAN}→${RESET}  ${DIM}cat ../PostInstall/TODO.org${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${DIM}Log out and back in for Docker group changes to take effect${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${DIM}Press ${RESET}${BOLD}prefix + I${RESET}${DIM} inside tmux to install TPM plugins${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Run ${RESET}${BOLD}~/Tools/start-services.sh start${RESET}${DIM} to launch HackTricks & RevShells${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}HackTricks  → http://localhost:3337${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}RevShells   → http://localhost:9988${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Full log    → %s${RESET}\n" "$LOG"
+printf "  ${CYAN}→${RESET}  ${DIM}cat ../PostInstall/TODO.org${RESET}\n"
+printf "\n"
+printf "  ${BOLD}${YELLOW}⚠  Manual installs required:${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${BOLD}Nessus Professional${RESET}  ${DIM}https://www.tenable.com/downloads/nessus?loginAttempted=true${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${BOLD}Burp Suite Professional${RESET}  ${DIM}https://portswigger.net/burp/releases/professional-community-2026-2-4?requestededition=professional&requestedplatform=${RESET}\n"
 printf "\n"
