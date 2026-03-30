@@ -22,7 +22,7 @@ BG_BLUE="${ESC}[44m"
 # ══════════════════════════════════════════════════════════════════════════════
 #  STEP TRACKING
 # ══════════════════════════════════════════════════════════════════════════════
-TOTAL_STEPS=17
+TOTAL_STEPS=16
 CURRENT_STEP=0
 SCRIPT_START=$(date +%s)
 
@@ -244,11 +244,7 @@ _zsh_plugin zsh-autosuggestions       https://github.com/zsh-users/zsh-autosugge
 _zsh_plugin fast-syntax-highlighting  https://github.com/zdharma-continuum/fast-syntax-highlighting.git
 _zsh_plugin zsh-autocomplete          https://github.com/marlonrichert/zsh-autocomplete.git
 
-if command -v zsh >/dev/null && grep -q "$(command -v zsh)" /etc/shells; then
-    spin "set default shell to zsh" chsh -s "$(command -v zsh)"
-else
-    warn "zsh not in /etc/shells — skipping chsh"
-fi
+# Kali ships with zsh as default — no chsh needed
 
 # ══════════════════════════════════════════════════════════════════════════════
 
