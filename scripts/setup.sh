@@ -203,7 +203,7 @@ else
         emacs eza bat ripgrep git tmux gnupg unzip fonts-firacode \
         python3-argcomplete atuin flameshot syncthing syncthingtray \
         golang-go ansifilter docker.io docker-buildx docker-compose \
-        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv alacritty
+        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv alacritty seclists
     mark_done "apt"
 fi
 
