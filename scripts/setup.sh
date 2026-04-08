@@ -201,6 +201,7 @@ else
     spin "apt update & upgrade"    sudo apt-get update -qq
     spin "install core packages"   sudo apt-get install -y -qq \
         emacs eza bat ripgrep git tmux gnupg unzip fonts-firacode \
+        pkg-config libfuse3-dev python3-dev \
         python3-argcomplete atuin flameshot syncthing syncthingtray \
         golang-go ansifilter docker.io docker-buildx docker-compose \
         ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv jq alacritty seclists
@@ -401,6 +402,10 @@ else
              -O "$HOME/.local/bin/kerbrute"
     chmod +x "$HOME/.local/bin/kerbrute"
     ok "kerbrute installed → ~/.local/bin/kerbrute"
+
+    # NFS Security Tooling
+    spin "install nfs-security-tooling" \
+        pipx install git+https://github.com/hvs-consulting/nfs-security-tooling.git
 
     # Statistically likely usernames wordlist
     if [ ! -d /usr/share/wordlists/statistically-likely-usernames ]; then
