@@ -203,7 +203,7 @@ else
         emacs eza bat ripgrep git tmux gnupg unzip fonts-firacode \
         python3-argcomplete atuin flameshot syncthing syncthingtray \
         golang-go ansifilter docker.io docker-buildx docker-compose \
-        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv alacritty seclists
+        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv jq alacritty seclists
     mark_done "apt"
 fi
 
@@ -228,6 +228,8 @@ else
     section "Go Tools — Nuclei & Katana" "⚡"
     spin "install nuclei"          go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
     safe_link "$HOME/go/bin/nuclei" /usr/local/bin/nuclei
+    spin "update nuclei templates" nuclei -update-templates
+    
 
     spin "install katana"          bash -c 'CGO_ENABLED=1 go install github.com/projectdiscovery/katana/cmd/katana@latest'
     safe_link "$HOME/go/bin/katana" /usr/local/bin/katana
@@ -246,7 +248,10 @@ else
     spin "install scoutsuite"      pipx install scoutsuite
     safe_link "$HOME/.local/share/pipx/venvs/scoutsuite/bin/scout" /usr/bin/scout
 
-    spin "install prowler"         pipx install prowler
+    spin "pyenv install 3.12"      pyenv install 3.12
+    spin "install prowler" \
+        bash -c 'export PYENV_VERSION=3.12; pipx install prowler --python "$(pyenv which python)"'
+
     spin "install roadrecon"       pipx install roadrecon
     mark_done "cloud_tools"
 fi
@@ -491,7 +496,56 @@ else
     spin "build revshells image"       sg docker -c "docker build -t reverse_shell_generator $HOME/Tools/reverse-shell-generator"
 
     # ── Service launcher script ───────────────────────────────────────────────
-    cat > "$HOME/Tools/start-services.sh" << 'EOF'
+    cat > "$HOME/Tools/docker-compose.yml" << 'EOF'
+services:
+  hacktricks:
+    image: ghcr.io/hacktricks-wiki/hacktricks-cloud/translator-image
+    platform: linux/amd64
+    ports:
+      - "3337:3000"
+    volumes:
+      - ./hacktricks:/app
+    command: >
+      bash -c "mkdir -p ~/.ssh &&
+               ssh-keyscan -H github.com >> ~/.ssh/known_hosts &&
+               cd /app &&
+               git config --global --add safe.directory /app &&
+               git checkout master &&
+               git pull &&
+               MDBOOK_PREPROCESSOR__HACKTRICKS__ENV=dev mdbook serve --hostname 0.0.0.0"
+    restart: unless-stopped
+
+  revshells:
+    image: reverse_shell_generator
+    ports:
+      - "9988:80"
+    restart: unless-stopped
+
+  nessus:
+    image: tenable/nessus:latest-ubuntu
+    ports:
+      - "8834:8834"
+    env_file:
+      - .env
+    restart: unless-stopped
+EOF
+    ok "docker-compose.yml created → ~/Tools/docker-compose.yml"
+
+    # ── .env template for Nessus credentials ─────────────────────────────────
+    if [ ! -f "$HOME/Tools/.env" ]; then
+        cat > "$HOME/Tools/.env" << 'EOF'
+# Nessus Professional credentials
+# Fill these in before running: docker compose up -d
+ACTIVATION_CODE=your-activation-code-here
+USERNAME=admin
+PASSWORD=changeme
+EOF
+        chmod 600 "$HOME/Tools/.env"
+        ok ".env template created → ~/Tools/.env  (chmod 600)"
+    else
+        info ".env already exists — skipping"
+    fi
+        cat > "$HOME/Tools/start-services.sh" << 'EOF'
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────
 #  Pentest Services Launcher — bloodstiller
@@ -499,45 +553,28 @@ else
 # ─────────────────────────────────────────────────────────
 
 ACTION="${1:-start}"
-HACKTRICKS_DIR="$HOME/Tools/hacktricks"
+TOOLS_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 case "$ACTION" in
     start)
         echo "🚀 Starting HackTricks on http://localhost:3337 ..."
-        docker run -d --rm --platform linux/amd64 \
-            -p 3337:3000 \
-            --name hacktricks \
-            -v "${HACKTRICKS_DIR}:/app" \
-            ghcr.io/hacktricks-wiki/hacktricks-cloud/translator-image \
-            bash -c "mkdir -p ~/.ssh && \
-                     ssh-keyscan -H github.com >> ~/.ssh/known_hosts && \
-                     cd /app && \
-                     git config --global --add safe.directory /app && \
-                     git checkout master && \
-                     git pull && \
-                     MDBOOK_PREPROCESSOR__HACKTRICKS__ENV=dev mdbook serve --hostname 0.0.0.0"
-
         echo "🚀 Starting Reverse Shell Generator on http://localhost:9988 ..."
-        docker run -d --rm \
-            -p 9988:80 \
-            --name revshells \
-            reverse_shell_generator
-
+        echo "🚀 Starting Nessus on https://localhost:8834 ..."
+        docker compose -f "$TOOLS_DIR/docker-compose.yml" up -d
         echo ""
         echo "  ✔  HackTricks   → http://localhost:3337  (allow ~5 min to build)"
         echo "  ✔  RevShells    → http://localhost:9988"
+        echo "  ✔  Nessus       → https://localhost:8834  (allow ~2 min to start)"
         echo ""
         echo "  Stop with: $0 stop"
         ;;
     stop)
         echo "🛑 Stopping services..."
-        docker stop hacktricks 2>/dev/null && echo "  ✔  HackTricks stopped" || echo "  ⚠  HackTricks was not running"
-        docker stop revshells  2>/dev/null && echo "  ✔  RevShells stopped"  || echo "  ⚠  RevShells was not running"
+        docker compose -f "$TOOLS_DIR/docker-compose.yml" down
         ;;
     status)
         echo "📊 Running pentest service containers:"
-        docker ps --filter name=hacktricks --filter name=revshells \
-            --format "  {{.Names}}\t{{.Status}}\t{{.Ports}}"
+        docker compose -f "$TOOLS_DIR/docker-compose.yml" ps
         ;;
     *)
         echo "Usage: $0 [start|stop|status]"
@@ -595,6 +632,10 @@ printf "  ${CYAN}→${RESET}  ${DIM}Full log    → %s${RESET}\n" "$LOG"
 printf "  ${CYAN}→${RESET}  ${DIM}cat ../PostInstall/TODO.org${RESET}\n"
 printf "\n"
 printf "  ${BOLD}${YELLOW}⚠  Manual installs required:${RESET}\n"
-printf "  ${CYAN}→${RESET}  ${BOLD}Nessus Professional${RESET}  ${DIM}https://www.tenable.com/downloads/nessus?loginAttempted=true${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${BOLD}Burp Suite Professional${RESET}  ${DIM}https://portswigger.net/burp/releases/professional-community-2026-2-4?requestededition=professional&requestedplatform=${RESET}\n"
+printf "\n"
+printf "  ${BOLD}${YELLOW}⚠  Before starting services:${RESET}\n"
+printf "  ${CYAN}→${RESET}  Edit ${BOLD}~/Tools/.env${RESET}${DIM} and add your Nessus activation code, username & password${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Then run: ${RESET}${BOLD}~/Tools/start-services.sh start${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Nessus will be available at ${RESET}${BOLD}https://localhost:8834${RESET}${DIM} once started${RESET}\n"
 printf "\n"
