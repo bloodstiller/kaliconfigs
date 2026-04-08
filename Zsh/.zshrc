@@ -211,10 +211,8 @@ export PATH=$PATH:/home/kali/.local/bin
 export PH1=""
 export PH2=""
 
-# Box Scrtips for THM
-alias nt="~/.dotfiles/scripts/newtest.sh"
-alias nbx="~/.dotfiles/scripts/newbox.sh"
-alias nps="~/.dotfiles/scripts/newportswigger.sh"
+# Rustscan
+alias rustscan='docker run -it --rm --name rustscan rustscan/rustscan:2.1.1'
 
 # Launch Bloodhound
 alias bh='docker compose -f ~/.dotfiles/bloodhound/docker-compose.yml up && echo "bh starting"'
