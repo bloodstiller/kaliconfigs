@@ -157,6 +157,113 @@ skip_section() {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  SOPS / AGE HELPERS
+#  Called from the SSH Secrets section further below.
+# ══════════════════════════════════════════════════════════════════════════════
+
+AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+
+# Prompt for the age private key with echo disabled so it never appears
+# on screen or in the scroll-back buffer. Validates the key before writing
+# and uses install(1) to set permissions before any content touches disk.
+read_age_key_securely() {
+    printf "\n    ${BOLD}${YELLOW}🔑  Age private key required${RESET}\n"
+    printf "    ${DIM}Retrieve from your password manager and paste the full key block.${RESET}\n"
+    printf "    ${DIM}Input is NOT echoed. Press ${RESET}${BOLD}Ctrl+D${RESET}${DIM} on a blank line when done.${RESET}\n\n"
+
+    mkdir -p "$(dirname "$AGE_KEY_FILE")"
+    chmod 700 "$(dirname "$AGE_KEY_FILE")"
+
+    local key_content
+    stty -echo
+    key_content=$(cat)
+    stty echo
+    printf "\n"   # restore cursor position after silent input
+
+    # Basic sanity check before writing anything to disk
+    if ! printf '%s' "$key_content" | grep -q "^AGE-SECRET-KEY-"; then
+        printf "    ${RED}✘${RESET}  Input does not look like a valid age private key — aborting.\n"
+        log "FAIL: age key validation — missing AGE-SECRET-KEY- prefix"
+        return 1
+    fi
+
+    # Create the file with correct permissions BEFORE writing content
+    # so there is no window where the key exists world-readable
+    install -m 600 /dev/null "$AGE_KEY_FILE"
+    printf '%s\n' "$key_content" > "$AGE_KEY_FILE"
+
+    ok "Age key written → $AGE_KEY_FILE (chmod 600)"
+    log "Age key written to $AGE_KEY_FILE"
+}
+
+# Decrypt the sops-encrypted secrets file and place each SSH key with
+# the correct filename and permissions. Requires python3-yaml (in apt list).
+deploy_ssh_keys() {
+    local secrets_file="$1"
+
+    if [ ! -f "$secrets_file" ]; then
+        warn "Secrets file not found: $secrets_file — skipping SSH key deployment"
+        log "WARN: secrets file missing: $secrets_file"
+        return 1
+    fi
+
+    if [ ! -f "$AGE_KEY_FILE" ]; then
+        warn "Age key not found at $AGE_KEY_FILE — skipping SSH key deployment"
+        log "WARN: age key missing"
+        return 1
+    fi
+
+    info "Decrypting SSH keys via sops..."
+    local decrypted
+    if ! decrypted=$(SOPS_AGE_KEY_FILE="$AGE_KEY_FILE" sops --decrypt "$secrets_file" 2>>"$LOG"); then
+        printf "    ${RED}✘${RESET}  sops decryption failed — check log: %s\n" "$LOG"
+        log "FAIL: sops decrypt of $secrets_file"
+        return 1
+    fi
+
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
+
+    # Use python3 + yaml to extract and write each key.
+    # The key map defines: yaml_field → (filename, octal_permissions)
+    python3 - "$HOME/.ssh" "$decrypted" <<'PYEOF'
+import sys, os, stat, yaml
+
+ssh_dir    = sys.argv[1]
+secrets    = yaml.safe_load(sys.argv[2])
+keys       = secrets.get('ssh_keys', {})
+
+key_map = {
+    'id_ed25519':     ('id_ed25519',     0o600),
+    'id_ed25519_pub': ('id_ed25519.pub', 0o644),
+    'id_rsa':         ('id_rsa',         0o600),
+    'id_rsa_pub':     ('id_rsa.pub',     0o644),
+}
+
+deployed = 0
+for field, (filename, perms) in key_map.items():
+    value = keys.get(field, '').strip()
+    if not value:
+        continue
+    path = os.path.join(ssh_dir, filename)
+    # Write with restrictive permissions from the start
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, perms)
+    with os.fdopen(fd, 'w') as f:
+        f.write(value + '\n')
+    os.chmod(path, perms)   # enforce even if file pre-existed
+    print(f"    \033[32m✔\033[0m  Deployed {filename}")
+    deployed += 1
+
+if deployed == 0:
+    print("    \033[33m⚠\033[0m  No SSH keys found in secrets file — check field names")
+    sys.exit(1)
+PYEOF
+
+    ok "SSH keys deployed → ~/.ssh/"
+    log "SSH keys deployed from $secrets_file"
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  START
 # ══════════════════════════════════════════════════════════════════════════════
 banner
@@ -200,11 +307,12 @@ else
     section "System Update & Core Packages" "📦"
     spin "apt update & upgrade"    sudo apt-get update -qq
     spin "install core packages"   sudo apt-get install -y -qq \
+        age \
         emacs eza bat ripgrep git tmux gnupg unzip fonts-firacode \
-        pkg-config libfuse3-dev python3-dev \
+        pkg-config libfuse3-dev python3-dev python3-yaml \
         python3-argcomplete atuin flameshot syncthing syncthingtray \
         golang-go ansifilter docker.io docker-buildx docker-compose \
-        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv jq alacritty seclists
+        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv jq tmuxinator alacritty seclists
     mark_done "apt"
 fi
 
@@ -230,7 +338,6 @@ else
     spin "install nuclei"          go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
     safe_link "$HOME/go/bin/nuclei" /usr/local/bin/nuclei
     spin "update nuclei templates" nuclei -update-templates
-    
 
     spin "install katana"          bash -c 'CGO_ENABLED=1 go install github.com/projectdiscovery/katana/cmd/katana@latest'
     safe_link "$HOME/go/bin/katana" /usr/local/bin/katana
@@ -428,22 +535,76 @@ else
 fi
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  SSH SECRETS — install sops, prompt for age key, decrypt & deploy SSH keys
+#
+#  Prerequisites (one-time setup on your trusted machine):
+#    1.  age-keygen -o ~/.config/sops/age/keys.txt
+#    2.  Add the public key to .sops.yaml at the root of kaliconfigs
+#    3.  sops --encrypt secrets/ssh_keys_plain.yaml > secrets/ssh_keys.yaml
+#    4.  Commit secrets/ssh_keys.yaml — safe to be public
+#    5.  Store the private key (keys.txt) in your password manager
+#
+#  The secrets file must live at:
+#    ~/.dotfiles/secrets/ssh_keys.yaml   (i.e. kaliconfigs/secrets/ssh_keys.yaml)
+#
+#  Expected structure inside the decrypted YAML:
+#    ssh_keys:
+#        id_ed25519: |
+#            -----BEGIN OPENSSH PRIVATE KEY-----
+#            ...
+#            -----END OPENSSH PRIVATE KEY-----
+#        id_ed25519_pub: "ssh-ed25519 AAAA... user@host"
+#        id_rsa: |          # optional
+#            ...
+#        id_rsa_pub: "..."  # optional
+# ══════════════════════════════════════════════════════════════════════════════
 
-if is_done "ssh_key"; then
-    skip_section "SSH Key" "🔑"
+if is_done "ssh_secrets"; then
+    skip_section "SSH Secrets (sops/age)" "🔐"
 else
-    section "SSH Key" "🔑"
-    if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
-        spin "generate ed25519 SSH key" \
-            ssh-keygen -t ed25519 -C "bloodstiller@bloodstiller.com" -f "$HOME/.ssh/id_ed25519" -N ""
-        ok "SSH key generated → ~/.ssh/id_ed25519"
-        printf "\n    ${DIM}Public key:${RESET}\n"
-        cat "$HOME/.ssh/id_ed25519.pub" | sed 's/^/    /'
-        printf "\n"
+    section "SSH Secrets (sops/age)" "🔐"
+
+    # ── Install sops binary ───────────────────────────────────────────────────
+    if ! command -v sops &>/dev/null; then
+        info "Fetching latest sops release..."
+        SOPS_VERSION=$(curl -s https://api.github.com/repos/getsops/sops/releases/latest \
+            | grep '"tag_name"' | cut -d '"' -f4)
+        spin "download sops ${SOPS_VERSION}" \
+            wget -q "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64" \
+                 -O /tmp/sops-bin
+        sudo install -m 755 /tmp/sops-bin /usr/local/bin/sops
+        rm -f /tmp/sops-bin
+        ok "sops installed → /usr/local/bin/sops"
     else
-        info "SSH key already exists — skipping"
+        info "sops already installed — skipping download"
     fi
-    mark_done "ssh_key"
+
+    # ── Locate secrets file ───────────────────────────────────────────────────
+    SECRETS_FILE="$HOME/.dotfiles/secrets/ssh_keys.yaml"
+
+    if [ ! -f "$SECRETS_FILE" ]; then
+        warn "Secrets file not found at $SECRETS_FILE"
+        warn "Ensure kaliconfigs contains secrets/ssh_keys.yaml (encrypted with sops)"
+        warn "Skipping SSH key deployment — add keys manually later"
+    else
+        # ── Prompt for age key (only if not already present) ─────────────────
+        if [ -f "$AGE_KEY_FILE" ]; then
+            info "Age key already present at $AGE_KEY_FILE — skipping prompt"
+        else
+            read_age_key_securely || {
+                warn "Age key entry failed — skipping SSH key deployment"
+                mark_done "ssh_secrets"
+                # Jump to next section without deploying keys
+            }
+        fi
+
+        # ── Decrypt and place keys ────────────────────────────────────────────
+        if [ -f "$AGE_KEY_FILE" ]; then
+            deploy_ssh_keys "$SECRETS_FILE"
+        fi
+    fi
+
+    mark_done "ssh_secrets"
 fi
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -453,6 +614,7 @@ if is_done "dotfile_links"; then
 else
     section "Dotfile Symlinks" "🔗"
     safe_link_user "$HOME/.dotfiles/Zsh/.zshrc"                    "$HOME/.zshrc"
+    safe_link_user "$HOME/.dotfiles/Zsh/.zshenv"                   "$HOME/.zshenv"
     rm -f "$HOME/.config/doom/"*.el
     for f in "$HOME/.dotfiles/Doom/"*.el; do
         safe_link_user "$f" "$HOME/.config/doom/$(basename "$f")"
@@ -643,4 +805,9 @@ printf "  ${BOLD}${YELLOW}⚠  Before starting services:${RESET}\n"
 printf "  ${CYAN}→${RESET}  Edit ${BOLD}~/Tools/.env${RESET}${DIM} and add your Nessus activation code, username & password${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${DIM}Then run: ${RESET}${BOLD}~/Tools/start-services.sh start${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${DIM}Nessus will be available at ${RESET}${BOLD}https://localhost:8834${RESET}${DIM} once started${RESET}\n"
+printf "\n"
+printf "  ${BOLD}${YELLOW}⚠  SSH secrets / age key:${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Age key persists at ${RESET}${BOLD}~/.config/sops/age/keys.txt${RESET}${DIM} (chmod 600)${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Rotate SSH keys: ${RESET}${BOLD}SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops ~/.dotfiles/secrets/ssh_keys.yaml${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Re-run SSH deploy only: ${RESET}${BOLD}rm ~/.setup_checkpoints/ssh_secrets && ./setup.sh${RESET}\n"
 printf "\n"
