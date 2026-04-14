@@ -239,7 +239,8 @@ key_map = {
     'sapphireKey_ed25519':  ('sapphireKey_ed25519',  0o600),
     'sapphireKey_ed25519.pub': ('sapphireKey_ed25519.pub', 0o644),
     'work_kali_ed25519':    ('work_kali_ed25519',     0o600),
-    'work_kali_ed25519.pub':    ('work_kali_ed25519.pub', 0o644)
+    'work_kali_ed25519.pub':    ('work_kali_ed25519.pub', 0o644),
+    'ssh_config':  ('config', 0o600),
 }
 
 deployed = 0
@@ -639,6 +640,8 @@ else
     ok "doom sync complete"
     spin "set git user.name"       git config --global user.name  "bloodstiller"
     spin "set git user.email"      git config --global user.email "bloodstiller@bloodstiller.com"
+    spin "set dotfiles remote url" git -C "$HOME/.dotfiles" remote set-url origin git@github.com:bloodstiller/kaliconfigs.git
+    mark_done "doom_sync"
     mark_done "doom_sync"
 fi
 
