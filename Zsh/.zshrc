@@ -293,7 +293,6 @@ update_var() {
 
 eval "$(register-python-argcomplete pip)"
 
-. "$HOME/.atuin/bin/env"
 
 eval "$(atuin init zsh)"
 

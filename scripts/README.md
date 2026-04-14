@@ -101,8 +101,7 @@ The encrypted file is safe to commit to a public repo. The only secret you manag
 sudo apt install age -y
 
 # Generate the keypair — output goes to keys.txt
-age-keygen -o ~/.config/sops/age/keys.txt
-chmod 600 ~/.config/sops/age/keys.txt
+mkdir -p ~/.config/sops/age && sudo age-keygen -o ~/.config/sops/age/keys.txt && sudo chmod 600 ~/.config/sops/age/keys.txt
 ```
 
 The output will include a line like:
@@ -153,7 +152,8 @@ EOF
 
 # Encrypt — sops reads .sops.yaml automatically
 SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt \
-  sops --encrypt /tmp/ssh_secrets_plain.yaml > secrets/ssh_keys.yaml
+  sops encrypt --filename-override secrets/ssh_keys.yaml \
+  /tmp/ssh_secrets_plain.yaml > secrets/ssh_keys.yaml
 
 # Verify — values should show ENC[AES256_GCM,...] not your keys
 cat secrets/ssh_keys.yaml

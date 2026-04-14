@@ -6,3 +6,6 @@ hosts
 TODO
 .env
 _data
+secrets/*_plain.yaml
+secrets/*_plaintext.yaml
+

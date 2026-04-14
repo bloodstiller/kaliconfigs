@@ -234,10 +234,12 @@ secrets    = yaml.safe_load(sys.argv[2])
 keys       = secrets.get('ssh_keys', {})
 
 key_map = {
-    'id_ed25519':     ('id_ed25519',     0o600),
-    'id_ed25519_pub': ('id_ed25519.pub', 0o644),
-    'id_rsa':         ('id_rsa',         0o600),
-    'id_rsa_pub':     ('id_rsa.pub',     0o644),
+    'kali_vet_ed25519':     ('kali_vet_ed25519',     0o600),
+    'kali_vet_ed25519.pub': ('kali_vet_ed25519.pub', 0o644),
+    'sapphireKey_ed25519':  ('sapphireKey_ed25519',  0o600),
+    'sapphireKey_ed25519.pub': ('sapphireKey_ed25519.pub', 0o644),
+    'work_kali_ed25519':    ('work_kali_ed25519',     0o600),
+    'work_kali_ed25519.pub':    ('work_kali_ed25519.pub', 0o644)
 }
 
 deployed = 0
