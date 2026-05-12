@@ -315,7 +315,8 @@ else
         pkg-config libfuse3-dev python3-dev python3-yaml \
         python3-argcomplete atuin flameshot syncthing syncthingtray \
         golang-go ansifilter docker.io docker-buildx docker-compose \
-        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv jq tmuxinator alacritty seclists
+        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv jq tmuxinator \
+        alacritty seclists rlwrap
     mark_done "apt"
 fi
 
