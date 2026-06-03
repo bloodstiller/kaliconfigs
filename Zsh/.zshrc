@@ -265,6 +265,10 @@ txtlog2md() {
   done
 }
 
+# Easily pull ports from nmap scans for nessus
+ports() {
+    grep -oP '\d+(?=/open)' "$1" | sort -n | tr '\n' ',' | sed 's/,$/\n/'
+}
 
 # Auto Tmux Logging:
 # Auto Tmux Logging:
