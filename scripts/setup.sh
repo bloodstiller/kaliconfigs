@@ -239,7 +239,8 @@ key_map = {
     'sapphireKey_ed25519':  ('sapphireKey_ed25519',  0o600),
     'sapphireKey_ed25519.pub': ('sapphireKey_ed25519.pub', 0o644),
     'work_kali_ed25519':    ('work_kali_ed25519',     0o600),
-    'work_kali_ed25519.pub':    ('work_kali_ed25519.pub', 0o644)
+    'work_kali_ed25519.pub':    ('work_kali_ed25519.pub', 0o644),
+    'ssh_config':  ('config', 0o600),
 }
 
 deployed = 0
@@ -314,7 +315,8 @@ else
         pkg-config libfuse3-dev python3-dev python3-yaml \
         python3-argcomplete atuin flameshot syncthing syncthingtray \
         golang-go ansifilter docker.io docker-buildx docker-compose \
-        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv jq tmuxinator alacritty seclists
+        ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv jq tmuxinator \
+        alacritty seclists rlwrap azure-cli obsidian jwt penelope cupp
     mark_done "apt"
 fi
 
@@ -639,6 +641,8 @@ else
     ok "doom sync complete"
     spin "set git user.name"       git config --global user.name  "bloodstiller"
     spin "set git user.email"      git config --global user.email "bloodstiller@bloodstiller.com"
+    spin "set dotfiles remote url" git -C "$HOME/.dotfiles" remote set-url origin git@github.com:bloodstiller/kaliconfigs.git
+    mark_done "doom_sync"
     mark_done "doom_sync"
 fi
 
