@@ -180,16 +180,16 @@ alias urlencode='python3 -c "import sys, urllib.parse as ul; \
     print (ul.quote_plus(sys.argv[1]))"'
 
 # Set HTB base folder
-alias bx='/home/kali/Content/Walkthroughs/Boxes/BlogEntriesMade/Baby'  
+alias bx='/home/kali/VMShare/Master\ Notes/labs\ \&\ courses/htb/_in-progress/Inception'  
 
 # Set engagement Root
 alias en='cd "/home/kali/VMShare/Work/Tests/2026"'
 
 # Export the IP address of a target box
-export box="10.129.108.128"
+export box="10.129.31.151"
 
 # Export Machine name for target:
-export machine="forest"
+export machine="inception"
 
 # Domain
 export domain="htb.local"
