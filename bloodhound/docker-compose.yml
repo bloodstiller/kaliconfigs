@@ -16,8 +16,9 @@
 
 services:
   app-db:
-    image: docker.io/library/postgres:13.2
+    image: docker.io/library/postgres:16
     environment:
+      - PGUSER=${POSTGRES_USER:-bloodhound}
       - POSTGRES_USER=${POSTGRES_USER:-bloodhound}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-bloodhoundcommunityedition}
       - POSTGRES_DB=${POSTGRES_DB:-bloodhound}
@@ -30,7 +31,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-bloodhound} -d ${POSTGRES_DB:-bloodhound} -h 127.0.0.1 -p ${POSTGRES_PORT:-5432}"
+          "pg_isready -U ${POSTGRES_USER:-bloodhound} -d ${POSTGRES_DB:-bloodhound} -h 127.0.0.1 -p 5432"
         ]
       interval: 10s
       timeout: 5s
@@ -38,7 +39,7 @@ services:
       start_period: 30s
 
   graph-db:
-    image: docker.io/library/neo4j:4.4
+    image: docker.io/library/neo4j:4.4.42
     environment:
       - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_SECRET:-bloodhoundcommunityedition}
       - NEO4J_dbms_allow__upgrade=${NEO4J_ALLOW_UPGRADE:-true}
@@ -52,7 +53,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -O /dev/null -q http://localhost:${NEO4J_WEB_PORT:-7474} || exit 1"
+          "wget -O /dev/null -q http://localhost:7474 || exit 1"
         ]
       interval: 10s
       timeout: 5s
@@ -67,6 +68,8 @@ services:
       - bhe_graph_query_memory_limit=${bhe_graph_query_memory_limit:-2}
       - bhe_database_connection=user=${POSTGRES_USER:-bloodhound} password=${POSTGRES_PASSWORD:-bloodhoundcommunityedition} dbname=${POSTGRES_DB:-bloodhound} host=app-db
       - bhe_neo4j_connection=neo4j://${NEO4J_USER:-neo4j}:${NEO4J_SECRET:-bloodhoundcommunityedition}@graph-db:7687/
+      - bhe_recreate_default_admin=${bhe_recreate_default_admin:-false}
+      - bhe_graph_driver=${GRAPH_DRIVER:-neo4j}
       ### Add additional environment variables you wish to use here.
       ### For common configuration options that you might want to use environment variables for, see `.env.example`
       ### example: bhe_database_connection=${bhe_database_connection}

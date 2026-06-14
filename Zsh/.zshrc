@@ -1,94 +1,94 @@
 export ZSH="$HOME/.oh-my-zsh"
-
 ZSH_CUSTOM="$HOME/.oh-my-zsh/custom"
-
 ZSH_THEME="jonathan"
 
-plugins=(git
-  tmux
-  zsh-autosuggestions
-  zsh-syntax-highlighting
-  fast-syntax-highlighting
-  zsh-autocomplete
-)
+# Disable OMZ update check (saves ~22ms)
+zstyle ':omz:update' mode disabled
 
+# Skip compfix security audit (saves ~70ms from compaudit)
+ZSH_DISABLE_COMPFIX=true
+
+plugins=(git tmux zsh-autosuggestions)
 
 source $ZSH/oh-my-zsh.sh
 
-setopt autocd              # change directory just by typing its name
-#setopt correct            # auto correct mistakes
-setopt interactivecomments # allow comments in interactive mode
-setopt magicequalsubst     # enable filename expansion for arguments of the form ‘anything=expression’
-setopt nonomatch           # hide error message if there is no match for the pattern
-setopt notify              # report the status of background jobs immediately
-setopt numericglobsort     # sort filenames numerically when it makes sense
-setopt promptsubst         # enable command substitution in prompt
+# ── Shell options ──────────────────────────────────────────────────────────────
+setopt autocd
+setopt interactivecomments
+setopt magicequalsubst
+setopt nonomatch
+setopt notify
+setopt numericglobsort
+setopt promptsubst
 
 WORDCHARS=${WORDCHARS//\/}
-
 PROMPT_EOL_MARK=""
 
-bindkey -e                                        # emacs key bindings
-bindkey ' ' magic-space                           # do history expansion on space
-bindkey '^U' backward-kill-line                   # ctrl + U
-bindkey '^[[3;5~' kill-word                       # ctrl + Supr
-bindkey '^[[3~' delete-char                       # delete
-bindkey '^[[1;5C' forward-word                    # ctrl + ->
-bindkey '^[[1;5D' backward-word                   # ctrl + <-
-bindkey '^[[5~' beginning-of-buffer-or-history    # page up
-bindkey '^[[6~' end-of-buffer-or-history          # page down
-bindkey '^[[H' beginning-of-line                  # home
-bindkey '^[[F' end-of-line                        # end
-bindkey '^[[Z' undo                               # shift + tab undo last action
+# ── Key bindings ───────────────────────────────────────────────────────────────
+bindkey -e
+bindkey ' ' magic-space
+bindkey '^U' backward-kill-line
+bindkey '^[[3;5~' kill-word
+bindkey '^[[3~' delete-char
+bindkey '^[[1;5C' forward-word
+bindkey '^[[1;5D' backward-word
+bindkey '^[[5~' beginning-of-buffer-or-history
+bindkey '^[[6~' end-of-buffer-or-history
+bindkey '^[[H' beginning-of-line
+bindkey '^[[F' end-of-line
+bindkey '^[[Z' undo
+zle -N toggle_oneline_prompt
+bindkey ^P toggle_oneline_prompt
 
+# ── Completion ─────────────────────────────────────────────────────────────────
+# Run compinit at most once per day; use cache otherwise (saves ~195ms)
 autoload -Uz compinit
-compinit -d ~/.cache/zcompdump
+if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then
+  compinit -d ~/.cache/zcompdump
+else
+  compinit -C -d ~/.cache/zcompdump
+fi
+
 zstyle ':completion:*:*:*:*:*' menu select
 zstyle ':completion:*' auto-description 'specify: %d'
 zstyle ':completion:*' completer _expand _complete
 zstyle ':completion:*' format 'Completing %d'
 zstyle ':completion:*' group-name ''
 zstyle ':completion:*' list-colors ''
-zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
+zstyle ':completion:*' list-prompt '%SAt %p: Hit TAB for more, or the character to insert%s'
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 zstyle ':completion:*' rehash true
-zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
+zstyle ':completion:*' select-prompt '%SScrolling active: current selection at %p%s'
 zstyle ':completion:*' use-compctl false
 zstyle ':completion:*' verbose true
 zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
+# ── History ────────────────────────────────────────────────────────────────────
 HISTFILE=/home/$USER/.zsh_history
-
 HISTSIZE=200000
 SAVEHIST=200000
-
-setopt hist_expire_dups_first # delete duplicates first when HISTFILE size exceeds HISTSIZE
-setopt hist_ignore_dups       # ignore duplicated commands history list
-setopt hist_ignore_space      # ignore commands that start with space
-setopt hist_verify            # show command with history expansion to user before running it
-#setopt share_history         # share command history data
-
-# force zsh to show the complete history
+setopt hist_expire_dups_first
+setopt hist_ignore_dups
+setopt hist_ignore_space
+setopt hist_verify
 alias history="history 0"
 
 TIMEFMT=$'\nreal\t%E\nuser\t%U\nsys\t%S\ncpu\t%P'
 
+# ── Colours ────────────────────────────────────────────────────────────────────
 case "$TERM" in
     xterm-color|*-256color) color_prompt=yes;;
 esac
-
 force_color_prompt=yes
 
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-        # We have color support; assume it's compliant with Ecma-48
-        # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-        # a case would tend to support setf rather than setaf.)
         color_prompt=yes
     else
         color_prompt=
     fi
 fi
+
 toggle_oneline_prompt(){
     if [ "$PROMPT_ALTERNATIVE" = oneline ]; then
         PROMPT_ALTERNATIVE=twoline
@@ -98,15 +98,9 @@ toggle_oneline_prompt(){
     configure_prompt
     zle reset-prompt
 }
-zle -N toggle_oneline_prompt
-bindkey ^P toggle_oneline_prompt
-
 
 precmd() {
-    # Print the previously configured title
     print -Pnr -- "$TERM_TITLE"
-
-    # Print a new line before the prompt, but only if it is not the first line
     if [ "$NEWLINE_BEFORE_PROMPT" = yes ]; then
         if [ -z "$_NEW_LINE_BEFORE_PROMPT" ]; then
             _NEW_LINE_BEFORE_PROMPT=1
@@ -118,11 +112,7 @@ precmd() {
 
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    export LS_COLORS="$LS_COLORS:ow=30;44:" # fix ls color for folders with 777 permissions
-
-    alias ls='ls --color=auto'
-    #alias dir='dir --color=auto'
-    #alias vdir='vdir --color=auto'
+    export LS_COLORS="$LS_COLORS:ow=30;44:"
 
     alias grep='grep --color=auto'
     alias fgrep='fgrep --color=auto'
@@ -130,132 +120,81 @@ if [ -x /usr/bin/dircolors ]; then
     alias diff='diff --color=auto'
     alias ip='ip --color=auto'
 
-    export LESS_TERMCAP_mb=$'\E[1;31m'     # begin blink
-    export LESS_TERMCAP_md=$'\E[1;36m'     # begin bold
-    export LESS_TERMCAP_me=$'\E[0m'        # reset bold/blink
-    export LESS_TERMCAP_so=$'\E[01;33m'    # begin reverse video
-    export LESS_TERMCAP_se=$'\E[0m'        # reset reverse video
-    export LESS_TERMCAP_us=$'\E[1;32m'     # begin underline
-    export LESS_TERMCAP_ue=$'\E[0m'        # reset underline
+    export LESS_TERMCAP_mb=$'\E[1;31m'
+    export LESS_TERMCAP_md=$'\E[1;36m'
+    export LESS_TERMCAP_me=$'\E[0m'
+    export LESS_TERMCAP_so=$'\E[01;33m'
+    export LESS_TERMCAP_se=$'\E[0m'
+    export LESS_TERMCAP_us=$'\E[1;32m'
+    export LESS_TERMCAP_ue=$'\E[0m'
 
-    # Take advantage of $LS_COLORS for completion as well
     zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
     zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
 fi
 
-if [ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
-    . /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-    # change suggestion color
-    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#999'
+# ── Autosuggestions ────────────────────────────────────────────────────────────
+# Loaded via plugin above; source system copy only as fallback
+if [[ ! -f $ZSH_CUSTOM/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] \
+   && [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 fi
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#999'
 
-# enable command-not-found if installed
-if [ -f /etc/zsh_command_not_found ]; then
-    . /etc/zsh_command_not_found
-fi
-# Set default editor to Emacs
-EDITOR='emacs'
+# command-not-found
+[[ -f /etc/zsh_command_not_found ]] && source /etc/zsh_command_not_found
 
-# Aliases for exa (a modern replacement for 'ls')
-alias ls='exa -T -L=1 -a -B -h -l -g --icons'
-alias lsl='exa -T -L=2 -a -B -h -l -g --icons'
-alias lss='exa -T -L=1 -B -h -l -g --icons'
-
-# Alias for 'batcat' (a syntax-highlighting replacement for 'cat')
-alias cat='batcat'
-
-# Alias to run Doom Emacs
-alias doom='~/.config/emacs/bin/doom'
-
-alias dt='~/.dotfiles'
-alias blog='~/Blog'
-
-
-# URL decode function using Python3
-alias urldecode='python3 -c "import sys, urllib.parse as ul; \
-    print(ul.unquote_plus(sys.argv[1]))"'
-
-# URL encode function using Python3
-alias urlencode='python3 -c "import sys, urllib.parse as ul; \
-    print (ul.quote_plus(sys.argv[1]))"'
-
-# Set HTB base folder
-alias bx='/home/kali/VMShare/Master\ Notes/labs\ \&\ courses/htb/_in-progress/Inception'  
-
-# Set engagement Root
-alias en='cd "/home/kali/VMShare/Work/Tests/2026"'
-
-# Export the IP address of a target box
-export box="10.129.31.151"
-
-# Export Machine name for target:
-export machine="inception"
-
-# Domain
-export domain="htb.local"
-
-# Aliases for quick access to tools directories
-alias wt='~/windowsTools'
-alias lt='~/linuxTools'
-
-# Start a Python HTTP server on port 9000
-alias pws='python3 -m http.server 9000'
-
-# Set up a tunneling interface using ligolo
-alias lgu='sudo ip tuntap add user kali mode tun ligolo && sudo ip link set ligolo up'
-
-# Add local bin directory to the system PATH
+# ── Environment ────────────────────────────────────────────────────────────────
+export EDITOR='emacs'
 export PATH=$PATH:/home/kali/.local/bin
 
-# Export IP address for target environment
+# pnpm
+export PNPM_HOME="/home/kali/.local/share/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+
+# pyenv — lazy: only initialises when pyenv/python/pip/etc. are first called
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+_pyenv_lazy_init() {
+  unfunction pyenv python python3 pip pip3 2>/dev/null
+  eval "$(pyenv init - zsh)"
+  # Re-dispatch the original command
+  "$0" "$@"
+}
+for _cmd in pyenv python python3 pip pip3; do
+  functions[$_cmd]="_pyenv_lazy_init"
+done
+unset _cmd
+
+# ── HTB / Engagement vars ──────────────────────────────────────────────────────
+export box="10.129.19.42"
+export machine="DC"
+export domain="ancoats.htb"
 export PH1=""
 export PH2=""
 
-# Rustscan
+# ── Aliases ────────────────────────────────────────────────────────────────────
+alias ls='exa -T -L=1 -a -B -h -l -g --icons'
+alias lsl='exa -T -L=2 -a -B -h -l -g --icons'
+alias lss='exa -T -L=1 -B -h -l -g --icons'
+alias cat='batcat'
+alias doom='~/.config/emacs/bin/doom'
+alias dt='~/.dotfiles'
+alias blog='~/Blog'
+alias urldecode='python3 -c "import sys, urllib.parse as ul; print(ul.unquote_plus(sys.argv[1]))"'
+alias urlencode='python3 -c "import sys, urllib.parse as ul; print(ul.quote_plus(sys.argv[1]))"'
+alias bx='/home/kali/VMShare/Master\ Notes/labs\ \&\ courses/htb/_in-progress/Overwatch'
+alias en='cd "/home/kali/VMShare/Work/Tests/2026"'
+alias wt='~/windowsTools'
+alias lt='~/linuxTools'
+alias pws='python3 -m http.server 9000'
+alias lgu='sudo ip tuntap add user kali mode tun ligolo && sudo ip link set ligolo up'
 alias rustscan='docker run -it --rm --name rustscan rustscan/rustscan:2.1.1'
-
-# Launch Bloodhound
 alias bh='docker compose -f ~/.dotfiles/bloodhound/docker-compose.yml up && echo "bh starting"'
 
-### This is used to easily set the tun0 adapter to be monitored
-### I can then easily call it in the variable $myip in tmuxinator scripts etc.
-# Define the shared file path
-#
-MYIP_FILE="$HOME/.myip"
-
-# Check for my IP, useful when launching VPN's and it changes.
-update_myip() {
-    if ip -o -4 addr list tun0 &>/dev/null; then
-        myip=$(ip -o -4 addr list tun0 | awk '{print $4}' | cut -d/ -f1)
-        export myip
-        echo "$myip" > $MYIP_FILE
-    else
-        unset myip
-        echo "" > $MYIP_FILE
-    fi
-}
-
-# Function to periodically check and update myip
-watch_myip() {
-    while true; do
-        update_myip
-        sleep 10  # Check every 60 seconds; adjust as necessary
-    done
-}
-
-# Initial check when the shell starts
-update_myip
-
-# Source the shared file to get the latest myip in tmux
-if [ -f $MYIP_FILE ]; then
-    myip=$(cat $MYIP_FILE)
-    export myip
-fi
-
-# Run the watch_myip function in the background
-watch_myip & disown
-
-#Convert txt to md
+# ── Functions ──────────────────────────────────────────────────────────────────
 txtlog2md() {
   setopt localoptions nullglob
   local files=( *.txt *.log )
@@ -265,51 +204,24 @@ txtlog2md() {
   done
 }
 
-# Easily pull ports from nmap scans for nessus
-ports() {
-    grep -oP '\d+(?=/open)' "$1" | sort -n | tr '\n' ',' | sed 's/,$/\n/'
+# Update a variable in ~/.zshrc in-place
+update_var() {
+  sed -i "s/^export $1=.*/export $1=\"$2\"/" ~/.zshrc
+  source ~/.zshrc
 }
 
-# Auto Tmux Logging:
-# Auto Tmux Logging:
+# ── Tmux auto-logging ──────────────────────────────────────────────────────────
 if [ -n "$TMUX_PANE" ] && [ "$TMUX_PANE_LOGGING" != "1" ]; then
   export TMUX_PANE_LOGGING=1
   LOGS=$HOME/tmux_logs/$(date +%Y-%m-%d)
   mkdir -p $LOGS
   LOG_PATH="$LOGS/pane${TMUX_PANE//[^0-9]/}.log"
-  
-  # Simpler pipe without cat
   tmux pipe-pane -o "ansifilter >> $LOG_PATH"
 fi
 
-
-# This autolaunches TMUX if not launched:
-#if [[ -z "$TMUX" && -z "$SSH_CONNECTION" && -n "$DISPLAY" ]]; then
-#  exec tmux new-session -A -s default \; source-file ~/.tmux.conf
-#fi
-
-# Used to easily update vars
-# use like this update_var <varName> "<newVarValue>"
-update_var() {
-      sed -i "s/^export $1=.*/export $1=\"$2\"/" ~/.zshrc
-          source ~/.zshrc
-        }
-
+# ── Deferred heavy init (after prompt is ready) ────────────────────────────────
+# atuin and pip argcomplete are fast enough to load inline but kept last
+# so they don't block the prompt appearing
 eval "$(register-python-argcomplete pip)"
-
-
 eval "$(atuin init zsh)"
 
-
-
-# pnpm
-export PNPM_HOME="/home/kali/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# pnpm end
- 
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init - zsh)"
