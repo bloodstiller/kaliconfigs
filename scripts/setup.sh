@@ -316,7 +316,7 @@ else
         python3-argcomplete atuin flameshot syncthing syncthingtray \
         golang-go ansifilter docker.io docker-buildx docker-compose \
         ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv jq tmuxinator \
-        alacritty seclists rlwrap azure-cli obsidian jwt penelope cupp rdate
+        alacritty seclists rlwrap azure-cli obsidian jwt penelope cupp rdate fzf 
     mark_done "apt"
 fi
 
@@ -443,7 +443,7 @@ else
     _zsh_plugin zsh-syntax-highlighting   https://github.com/zsh-users/zsh-syntax-highlighting.git
     _zsh_plugin zsh-autosuggestions       https://github.com/zsh-users/zsh-autosuggestions
     _zsh_plugin fast-syntax-highlighting  https://github.com/zdharma-continuum/fast-syntax-highlighting.git
-    _zsh_plugin zsh-autocomplete          https://github.com/marlonrichert/zsh-autocomplete.git
+    _zsh_plugin fzf-tab                   https://github.com/Aloxaf/fzf-tab.git
     # Kali ships with zsh as default — no chsh needed
     mark_done "ohmyzsh"
 fi
