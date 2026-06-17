@@ -8,7 +8,7 @@ zstyle ':omz:update' mode disabled
 # Skip compfix security audit (saves ~70ms from compaudit)
 ZSH_DISABLE_COMPFIX=true
 
-plugins=(git tmux zsh-autosuggestions)
+plugins=(git tmux zsh-autosuggestions fzf-tab zsh-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -41,7 +41,9 @@ zle -N toggle_oneline_prompt
 bindkey ^P toggle_oneline_prompt
 
 # ── Completion ─────────────────────────────────────────────────────────────────
-# Run compinit at most once per day; use cache otherwise (saves ~195ms)
+# Defer compinit entirely until first TAB press; zero startup cost.
+# First TAB in a session has a brief pause; every subsequent TAB is instant.
+# Replace the lazy compinit block with this
 autoload -Uz compinit
 if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then
   compinit -d ~/.cache/zcompdump
@@ -62,6 +64,10 @@ zstyle ':completion:*' select-prompt '%SScrolling active: current selection at %
 zstyle ':completion:*' use-compctl false
 zstyle ':completion:*' verbose true
 zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
+
+# fzf-tab — must be configured after compinit has run
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa --color=always $realpath'
+zstyle ':fzf-tab:*' switch-group ',' '.'
 
 # ── History ────────────────────────────────────────────────────────────────────
 HISTFILE=/home/$USER/.zsh_history
@@ -220,8 +226,7 @@ if [ -n "$TMUX_PANE" ] && [ "$TMUX_PANE_LOGGING" != "1" ]; then
 fi
 
 # ── Deferred heavy init (after prompt is ready) ────────────────────────────────
-# atuin and pip argcomplete are fast enough to load inline but kept last
-# so they don't block the prompt appearing
-eval "$(register-python-argcomplete pip)"
+# pip argcomplete backgrounded — harmless since pip won't be called at startup
+(( $+commands[pip] )) && eval "$(register-python-argcomplete pip)" &!
 eval "$(atuin init zsh)"
 
