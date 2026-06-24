@@ -316,7 +316,7 @@ else
         python3-argcomplete atuin flameshot syncthing syncthingtray \
         golang-go ansifilter docker.io docker-buildx docker-compose \
         ntpsec-ntpdate hugo pandoc awscli codelite ruby-dev pyenv jq tmuxinator \
-        alacritty seclists rlwrap azure-cli obsidian jwt penelope cupp rdate fzf 
+        alacritty seclists rlwrap azure-cli obsidian jwt penelope cupp rdate fzf testssl
     mark_done "apt"
 fi
 
