@@ -220,10 +220,11 @@ else
     section "System Update & Host Packages" "📦"
     spin "apt update"              sudo apt-get update -qq
     spin "apt upgrade"             sudo apt-get upgrade -y -qq
+    spin "snap install"           sudo snap install obsidian --classic
     spin "install host packages"   sudo apt-get install -y -qq \
         ca-certificates curl wget git unzip jq \
         python3 python3-pip python3-venv pipx python3-argcomplete \
-        zsh tmux vim \
+        zsh tmux vim eza atuin  \
         openvpn \
         bash-completion \
         fonts-firacode
