@@ -565,21 +565,6 @@ else
         warn "no tmux.conf in dotfiles — skipping"
     fi
 
-    # IMPORTANT: Exegol APPENDS my-resources/setup/zsh/zshrc to its own zshrc.
-    # Strip OMZ boilerplate — exegol has its own OMZ setup.
-    if [ -f "$DF_ZSHRC" ]; then
-        cat > "$EXEGOL_RES/setup/zsh/zshrc" <<EOF
-# ──────────────────────────────────────────────────────────────
-#  bloodstiller — custom zshrc additions, appended to exegol's
-#  Source of truth: $DF_ZSHRC
-#  Edit there and re-run exegol-setup.sh to refresh.
-# ──────────────────────────────────────────────────────────────
-EOF
-        grep -vE '^(source.*oh-my-zsh\.sh|ZSH=|ZSH_THEME=|plugins=\()' "$DF_ZSHRC" \
-            >> "$EXEGOL_RES/setup/zsh/zshrc"
-        ok "zshrc (filtered)  →  my-resources/setup/zsh/zshrc"
-    fi
-
     cat > "$EXEGOL_RES/setup/zsh/aliases" <<'EOF'
 # bloodstiller — API testing aliases (auto-loaded by exegol zshrc)
 
@@ -628,6 +613,7 @@ else
 # Extra APT packages for every new exegol container — bloodstiller
 # Exegol full/web/ad images already include most things. Add lines below
 # only for tools NOT shipped in your chosen image.
+eza
 EOF
     ok "apt/packages.list seeded (empty by default)"
 
