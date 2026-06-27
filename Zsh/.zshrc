@@ -199,6 +199,8 @@ alias pws='python3 -m http.server 9000'
 alias lgu='sudo ip tuntap add user kali mode tun ligolo && sudo ip link set ligolo up'
 alias rustscan='docker run -it --rm --name rustscan rustscan/rustscan:2.1.1'
 alias bh='docker compose -f ~/.dotfiles/bloodhound/docker-compose.yml up && echo "bh starting"'
+alias exegol='sudo -E ~/.local/bin/exegol'
+
 
 # ── Functions ──────────────────────────────────────────────────────────────────
 txtlog2md() {
@@ -230,3 +232,4 @@ fi
 (( $+commands[pip] )) && eval "$(register-python-argcomplete pip)" &!
 eval "$(atuin init zsh)"
 
+export PATH="$HOME/.local/bin:$PATH"

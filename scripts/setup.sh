@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  COLOURS & STYLES
@@ -117,7 +117,7 @@ spin() {
     else
         printf "    ${RED}✘${RESET}  %-55s\n" "$label"
         printf "\n${RED}  ── Error output ───────────────────────────────────────${RESET}\n"
-        cat "$tmpout" | sed 's/^/  /'
+        sed 's/^/  /' "$tmpout"
         printf "${RED}  ────────────────────────────────────────────────────────${RESET}\n"
         printf "  ${DIM}Full log: %s${RESET}\n\n" "$LOG"
         log "FAIL: $label"
@@ -508,8 +508,9 @@ else
     mkdir -p "$HOME/.local/bin"
 
     # Kerbrute
-    spin "download kerbrute" \
-        wget -q https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_linux_amd64 \
+    KERBRUTE_VER=$(curl -s https://api.github.com/repos/ropnop/kerbrute/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+    spin "download kerbrute ${KERBRUTE_VER}" \
+        wget -q "https://github.com/ropnop/kerbrute/releases/download/${KERBRUTE_VER}/kerbrute_linux_amd64" \
              -O "$HOME/.local/bin/kerbrute"
     chmod +x "$HOME/.local/bin/kerbrute"
     ok "kerbrute installed → ~/.local/bin/kerbrute"
@@ -642,7 +643,6 @@ else
     spin "set git user.name"       git config --global user.name  "bloodstiller"
     spin "set git user.email"      git config --global user.email "bloodstiller@bloodstiller.com"
     spin "set dotfiles remote url" git -C "$HOME/.dotfiles" remote set-url origin git@github.com:bloodstiller/kaliconfigs.git
-    mark_done "doom_sync"
     mark_done "doom_sync"
 fi
 

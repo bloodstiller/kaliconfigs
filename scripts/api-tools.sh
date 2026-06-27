@@ -1,5 +1,14 @@
-```bash
 #!/bin/bash
+# =============================================================================
+#  API Testing Tools — STANDALONE / LEGACY
+#
+#  NOTE: If you are using the Exegol workflow (exegol-setup.sh), you do NOT
+#  need this script. jwt_tool, kiterunner, arjun, mitmproxy, and ZAP are all
+#  shipped in the exegol "full" image. mitmproxy2swagger is added via
+#  my-resources/setup/python3/requirements.txt automatically.
+#
+#  This script is retained for bare-metal / non-Exegol setups only.
+# =============================================================================
 
 ###############################################################################
 # API Testing Tools Installation Script
@@ -255,5 +264,3 @@ echo "  2. Import Burp CA certificate from http://burpsuite"
 echo "  3. Start mitmproxy with: mitmweb"
 echo "  4. Download ZAP add-ons: Fuzzer, OpenAPI Support"
 echo
-
-```
