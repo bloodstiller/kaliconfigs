@@ -843,7 +843,7 @@ EOF
 fi
 
 # =============================================================================
-# 14. NERD FONTS — Iosevka & CommitMono for alacritty / emacs
+# 14. NERD FONTS — Iosevka, CommitMono & UbuntuMono for alacritty / emacs
 # =============================================================================
 if is_done "fonts"; then
     skip_section "Nerd Fonts" "🔤"
@@ -852,9 +852,11 @@ else
     mkdir -p "$HOME/.local/share/fonts/nerd-fonts"
     spin "download Iosevka"    wget -q https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Iosevka.zip    -O /tmp/Iosevka.zip
     spin "download CommitMono" wget -q https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CommitMono.zip -O /tmp/CommitMono.zip
+    spin "download UbuntuMono" wget -q https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/UbuntuMono.zip -O /tmp/UbuntuMono.zip
     spin "unzip Iosevka"       unzip -q /tmp/Iosevka.zip    -d "$HOME/.local/share/fonts/nerd-fonts/Iosevka"
     spin "unzip CommitMono"    unzip -q /tmp/CommitMono.zip -d "$HOME/.local/share/fonts/nerd-fonts/CommitMono"
-    rm -f /tmp/Iosevka.zip /tmp/CommitMono.zip
+    spin "unzip UbuntuMono"    unzip -q /tmp/UbuntuMono.zip -d "$HOME/.local/share/fonts/nerd-fonts/UbuntuMono"
+    rm -f /tmp/Iosevka.zip /tmp/CommitMono.zip /tmp/UbuntuMono.zip
     spin "refresh font cache"  fc-cache -fv
     mark_done "fonts"
 fi
