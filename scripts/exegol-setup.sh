@@ -42,7 +42,7 @@ BG_BLUE="${ESC}[44m"
 # ──────────────────────────────────────────────────────────────────────────────
 #  Step tracking & log file
 # ──────────────────────────────────────────────────────────────────────────────
-TOTAL_STEPS=18
+TOTAL_STEPS=20
 CURRENT_STEP=0
 SCRIPT_START=$(date +%s)
 
@@ -334,7 +334,9 @@ spin "install host packages" sudo apt-get install -y -qq \
     flameshot syncthing \
     hugo pandoc \
     ansifilter \
-    alacritty
+    alacritty \
+    nodejs npm
+
 # fd is packaged as fd-find on Ubuntu; doom emacs expects 'fd' on PATH
 if [ ! -e "$HOME/.local/bin/fd" ] && command -v fdfind >/dev/null 2>&1; then
     mkdir -p "$HOME/.local/bin"
@@ -965,6 +967,178 @@ else
 fi
 
 # =============================================================================
+# 18. HACKTRICKS & REVSHELLS — clone wikis, build Docker images, launchers
+# =============================================================================
+if is_done "hacktricks_revshells"; then
+    skip_section "HackTricks & RevShells" "📖"
+else
+    section "HackTricks & RevShells" "📖"
+
+    mkdir -p "$HOME/Tools"
+
+    if [ ! -d "$HOME/Tools/hacktricks" ]; then
+        spin "clone HackTricks wiki"   git clone https://github.com/HackTricks-wiki/hacktricks "$HOME/Tools/hacktricks"
+    else
+        info "HackTricks already cloned — skipping"
+    fi
+
+    if [ ! -d "$HOME/Tools/reverse-shell-generator" ]; then
+        spin "clone revshells"         git clone https://github.com/0dayCTF/reverse-shell-generator.git "$HOME/Tools/reverse-shell-generator"
+    else
+        info "revshells already cloned — skipping"
+    fi
+    spin "build revshells image"       sg docker -c "docker build -t reverse_shell_generator $HOME/Tools/reverse-shell-generator"
+
+    # ── Combined service compose (hacktricks + revshells + nessus) ────────────
+    cat > "$HOME/Tools/docker-compose.yml" << 'EOF'
+services:
+  hacktricks:
+    image: ghcr.io/hacktricks-wiki/hacktricks-cloud/translator-image
+    platform: linux/amd64
+    ports:
+      - "3337:3000"
+    volumes:
+      - ./hacktricks:/app
+    command: >
+      bash -c "mkdir -p ~/.ssh &&
+               ssh-keyscan -H github.com >> ~/.ssh/known_hosts &&
+               cd /app &&
+               git config --global --add safe.directory /app &&
+               git checkout master &&
+               git pull &&
+               MDBOOK_PREPROCESSOR__HACKTRICKS__ENV=dev mdbook serve --hostname 0.0.0.0"
+    restart: unless-stopped
+
+  revshells:
+    image: reverse_shell_generator
+    ports:
+      - "9988:80"
+    restart: unless-stopped
+
+  nessus:
+    image: tenable/nessus:latest-ubuntu
+    ports:
+      - "8834:8834"
+    env_file:
+      - .env
+    restart: unless-stopped
+EOF
+    ok "docker-compose.yml created → ~/Tools/docker-compose.yml"
+
+    # ── Unified launcher ──────────────────────────────────────────────────────
+    cat > "$HOME/Tools/start-services.sh" << 'EOF'
+#!/usr/bin/env bash
+# Usage: ./start-services.sh [start|stop|status]
+
+ACTION="${1:-start}"
+TOOLS_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+case "$ACTION" in
+    start)
+        echo "🚀 Starting HackTricks on http://localhost:3337 ..."
+        echo "🚀 Starting Reverse Shell Generator on http://localhost:9988 ..."
+        echo "🚀 Starting Nessus on https://localhost:8834 ..."
+        docker compose -f "$TOOLS_DIR/docker-compose.yml" up -d
+        echo ""
+        echo "  ✔  HackTricks   → http://localhost:3337  (allow ~5 min to build)"
+        echo "  ✔  RevShells    → http://localhost:9988"
+        echo "  ✔  Nessus       → https://localhost:8834  (allow ~2 min to start)"
+        echo ""
+        echo "  Stop with: $0 stop"
+        ;;
+    stop)
+        echo "🛑 Stopping services..."
+        docker compose -f "$TOOLS_DIR/docker-compose.yml" down
+        ;;
+    status)
+        echo "📊 Running pentest service containers:"
+        docker compose -f "$TOOLS_DIR/docker-compose.yml" ps
+        ;;
+    *)
+        echo "Usage: $0 [start|stop|status]"
+        exit 1
+        ;;
+esac
+EOF
+    chmod +x "$HOME/Tools/start-services.sh"
+    ok "launcher created → ~/Tools/start-services.sh"
+
+    mark_done "hacktricks_revshells"
+fi
+
+# =============================================================================
+# 19. NESSUS — Docker Compose service + credential template + launcher
+# =============================================================================
+if is_done "nessus"; then
+    skip_section "Nessus" "🔍"
+else
+    section "Nessus" "🔍"
+
+    mkdir -p "$HOME/Tools"
+
+    # ── Docker Compose for Nessus ─────────────────────────────────────────────
+    cat > "$HOME/Tools/nessus-compose.yml" << 'EOF'
+services:
+  nessus:
+    image: tenable/nessus:latest-ubuntu
+    ports:
+      - "8834:8834"
+    env_file:
+      - .env
+    restart: unless-stopped
+EOF
+    ok "nessus-compose.yml created → ~/Tools/nessus-compose.yml"
+
+    # ── .env template (skip if already populated) ─────────────────────────────
+    if [ ! -f "$HOME/Tools/.env" ]; then
+        cat > "$HOME/Tools/.env" << 'EOF'
+# Nessus Professional credentials
+# Fill these in before running: docker compose up -d
+ACTIVATION_CODE=your-activation-code-here
+USERNAME=admin
+PASSWORD=changeme
+EOF
+        chmod 600 "$HOME/Tools/.env"
+        ok ".env template created → ~/Tools/.env  (chmod 600)"
+    else
+        info ".env already exists — skipping"
+    fi
+
+    # ── Launcher script ───────────────────────────────────────────────────────
+    cat > "$HOME/Tools/start-nessus.sh" << 'EOF'
+#!/usr/bin/env bash
+# Usage: ./start-nessus.sh [start|stop|status]
+
+ACTION="${1:-start}"
+TOOLS_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+case "$ACTION" in
+    start)
+        echo "Starting Nessus on https://localhost:8834 ..."
+        docker compose -f "$TOOLS_DIR/nessus-compose.yml" up -d
+        echo "  Nessus → https://localhost:8834  (allow ~2 min to start)"
+        echo "  Stop with: $0 stop"
+        ;;
+    stop)
+        echo "Stopping Nessus..."
+        docker compose -f "$TOOLS_DIR/nessus-compose.yml" down
+        ;;
+    status)
+        docker compose -f "$TOOLS_DIR/nessus-compose.yml" ps
+        ;;
+    *)
+        echo "Usage: $0 [start|stop|status]"
+        exit 1
+        ;;
+esac
+EOF
+    chmod +x "$HOME/Tools/start-nessus.sh"
+    ok "launcher created → ~/Tools/start-nessus.sh"
+
+    mark_done "nessus"
+fi
+
+# =============================================================================
 # DONE
 # =============================================================================
 kill "$SUDO_KEEPALIVE_PID" 2>/dev/null
@@ -1014,4 +1188,12 @@ printf "  ${CYAN}→${RESET}  ${DIM}Launch Burp:${RESET} ${BOLD}burp${RESET}\n"
 printf "\n"
 printf "  ${BOLD}${YELLOW}⚠  VPN configs${RESET}\n"
 printf "  ${CYAN}→${RESET}  Pass .ovpn per-engagement: ${BOLD}exegol start <name> full --vpn <path>${RESET}\n"
+printf "\n"
+printf "  ${BOLD}${YELLOW}⚠  Pentest Services (HackTricks, RevShells, Nessus)${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Edit ${RESET}${BOLD}~/Tools/.env${RESET}${DIM} with your Nessus activation code, username, and password${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Start all:  ${RESET}${BOLD}~/Tools/start-services.sh start${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}HackTricks  → ${RESET}${BOLD}http://localhost:3337${RESET}${DIM}   (allow ~5 min to build)${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}RevShells   → ${RESET}${BOLD}http://localhost:9988${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Nessus      → ${RESET}${BOLD}https://localhost:8834${RESET}${DIM}  (allow ~2 min to start)${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Nessus only: ${RESET}${BOLD}~/Tools/start-nessus.sh start${RESET}\n"
 printf "\n"
