@@ -42,7 +42,7 @@ BG_BLUE="${ESC}[44m"
 # ──────────────────────────────────────────────────────────────────────────────
 #  Step tracking & log file
 # ──────────────────────────────────────────────────────────────────────────────
-TOTAL_STEPS=17
+TOTAL_STEPS=18
 CURRENT_STEP=0
 SCRIPT_START=$(date +%s)
 
@@ -341,13 +341,53 @@ if [ ! -e "$HOME/.local/bin/fd" ] && command -v fdfind >/dev/null 2>&1; then
     ln -s "$(command -v fdfind)" "$HOME/.local/bin/fd"
     ok "linked fd → fdfind"
 fi
-spin "snap install obsidian" sudo snap install obsidian --classic
+#spin "snap install obsidian" sudo snap install obsidian --classic
 # Create workspace directories used by engagements and tools
 mkdir -p "$HOME/Tools" "$HOME/Engagements"
 ok "created ~/Tools and ~/Engagements"
 
 # =============================================================================
-# 2. DOCKER
+# 2. OBSIDIAN — latest .deb from GitHub releases
+# =============================================================================
+if is_done "obsidian"; then
+    skip_section "Obsidian" "📝"
+else
+    section "Obsidian" "📝"
+
+    ARCH="$(uname -m)"
+    case "$ARCH" in
+        x86_64|amd64)  OBS_ARCH="amd64" ;;
+        aarch64|arm64) OBS_ARCH="arm64" ;;
+        *)
+            warn "Unknown arch '$ARCH' — skipping Obsidian install"
+            mark_done "obsidian"
+            OBS_ARCH=""
+            ;;
+    esac
+
+    if [ -n "$OBS_ARCH" ]; then
+        info "Fetching latest Obsidian release info..."
+        OBS_DEB_URL=$(curl -s https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest \
+            | grep -o "https://github.com/obsidianmd/obsidian-releases/releases/download/[^\"]*_${OBS_ARCH}\.deb" \
+            | head -1)
+
+        if [ -z "$OBS_DEB_URL" ]; then
+            warn "Could not resolve Obsidian .deb URL for $OBS_ARCH — skipping"
+        else
+            OBS_VERSION=$(basename "$OBS_DEB_URL" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+            spin "download Obsidian ${OBS_VERSION}" \
+                wget -q "$OBS_DEB_URL" -O /tmp/obsidian.deb
+            spin "install Obsidian ${OBS_VERSION}" \
+                sudo apt-get install -y -qq /tmp/obsidian.deb
+            rm -f /tmp/obsidian.deb
+            ok "Obsidian ${OBS_VERSION} installed"
+        fi
+        mark_done "obsidian"
+    fi
+fi
+
+# =============================================================================
+# 3. DOCKER
 #    Exegol requires docker. We do NOT add $USER to the docker group — that
 #    effectively gives the user root anyway (docker socket → root), which
 #    Exegol's own docs warn against. Instead, section 3 wires up the sudo
@@ -895,10 +935,27 @@ else
     sudo mkdir -p /mnt/hgfs
     spin_soft "mount vmhgfs" \
         sudo vmhgfs-fuse .host:/ /mnt/hgfs -o allow_other -o uid=1000
+
     if mountpoint -q /mnt/hgfs 2>/dev/null; then
-        echo ".host:/ /mnt/hgfs fuse.vmhgfs-fuse allow_other,defaults 0 0" | sudo tee -a /etc/fstab >/dev/null
-        safe_link_user /mnt/hgfs/VMShare "$HOME/VMShare"
-        ok "VMware share mounted and fstab updated"
+        FSTAB_ENTRY=".host:/ /mnt/hgfs fuse.vmhgfs-fuse allow_other,defaults 0 0"
+        if grep -qF "$FSTAB_ENTRY" /etc/fstab; then
+            info "fstab entry already present — skipping"
+        else
+            echo "$FSTAB_ENTRY" | sudo tee -a /etc/fstab >/dev/null
+            ok "fstab entry added → /etc/fstab"
+        fi
+
+        spin_soft "mount -a (verify fstab takes effect)"  sudo mount -a
+
+        if mountpoint -q /mnt/hgfs 2>/dev/null; then
+            ok "VMware share verified active after fstab update"
+        else
+            warn "VMware share not mounted after mount -a — check fstab and vmhgfs-fuse"
+        fi
+
+        if [ -d "/mnt/hgfs/Pentest" ]; then
+            safe_link_user /mnt/hgfs/Pentest "$HOME/Pentest"
+        fi
     else
         warn "VMware share not available — skipping fstab & symlink (safe to ignore on bare metal)"
     fi
