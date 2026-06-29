@@ -233,3 +233,6 @@ fi
 eval "$(atuin init zsh)"
 
 export PATH="$HOME/.local/bin:$PATH"
+
+# Claude Code
+export PATH="$HOME/.claude/bin:$PATH"

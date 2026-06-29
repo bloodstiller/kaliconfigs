@@ -1123,8 +1123,8 @@ else
     else
         info "revshells already cloned — skipping"
     fi
-    if ! docker image inspect reverse_shell_generator >/dev/null 2>&1; then
-        spin_soft "build revshells image"  docker build -t reverse_shell_generator "$HOME/Tools/reverse-shell-generator"
+    if ! sudo docker image inspect reverse_shell_generator >/dev/null 2>&1; then
+        spin_soft "build revshells image"  sudo docker build -t reverse_shell_generator "$HOME/Tools/reverse-shell-generator"
     else
         info "revshells image already built — skipping"
     fi
