@@ -42,7 +42,7 @@ BG_BLUE="${ESC}[44m"
 # ──────────────────────────────────────────────────────────────────────────────
 #  Step tracking & log file
 # ──────────────────────────────────────────────────────────────────────────────
-TOTAL_STEPS=20
+TOTAL_STEPS=19
 CURRENT_STEP=0
 SCRIPT_START=$(date +%s)
 
@@ -73,10 +73,15 @@ DF_TMUX="$DOTFILES_DIR/Tmux/.tmux.conf"
 AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
 # ── Burp Suite Pro / JDK ──────────────────────────────────────────────────────
-JDK_VERSION="23"
-JDK_DIR="jdk-23"
-JDK_URL_AMD64="https://download.java.net/java/GA/jdk23/3c5b90190c68498b986a97f276efd28a/37/GPL/openjdk-23_linux-x64_bin.tar.gz"
-JDK_URL_ARM64="https://download.java.net/java/GA/jdk23/3c5b90190c68498b986a97f276efd28a/37/GPL/openjdk-23_linux-aarch64_bin.tar.gz"
+# JDK version is resolved at runtime via the Eclipse Temurin (Adoptium) API.
+# To pin to a specific LTS, change JDK_FEATURE here.
+JDK_FEATURE=21   # current LTS; supported until 2029
+
+_temurin_url() {
+    local arch="$1"
+    curl -s "https://api.adoptium.net/v3/assets/latest/${JDK_FEATURE}/hotspot?os=linux&architecture=${arch}&image_type=jdk&vendor=eclipse" \
+        | jq -r '.[0].binary.package.link // empty'
+}
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Output helpers
@@ -299,6 +304,13 @@ if ! command -v apt-get >/dev/null 2>&1; then
     exit 1
 fi
 
+UBUNTU_MAJOR=$(lsb_release -sr 2>/dev/null | cut -d. -f1)
+if [ -z "$UBUNTU_MAJOR" ] || [ "$UBUNTU_MAJOR" -lt 22 ]; then
+    printf "${BOLD}${RED}  ✘  Ubuntu 22.04+ required (detected: %s). Aborting.${RESET}\n\n" \
+        "$(lsb_release -sd 2>/dev/null || echo unknown)"
+    exit 1
+fi
+
 printf "  ${BOLD}${YELLOW}🔑  Sudo required${RESET}\n"
 printf "  ${DIM}Enter your password once — it will stay alive for the duration.${RESET}\n\n"
 sudo -v
@@ -386,7 +398,7 @@ else
     if [ -n "$OBS_ARCH" ]; then
         info "Fetching latest Obsidian release info..."
         OBS_DEB_URL=$(curl -s https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest \
-            | grep -o "https://github.com/obsidianmd/obsidian-releases/releases/download/[^\"]*_${OBS_ARCH}\.deb" \
+            | jq -r ".assets[] | select(.name | endswith(\"_${OBS_ARCH}.deb\")) | .browser_download_url" \
             | head -1)
 
         if [ -z "$OBS_DEB_URL" ]; then
@@ -416,7 +428,16 @@ if is_done "docker"; then
 else
     section "Docker Engine" "🐳"
     if ! command -v docker >/dev/null 2>&1; then
-        spin "install docker.io"  sudo apt-get install -y -qq docker.io docker-compose-plugin
+        spin "add docker GPG key" \
+            bash -c 'curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+                | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg'
+        spin "add docker apt source" \
+            bash -c 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
+                https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+                | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null'
+        spin "apt update (docker source)"  sudo apt-get update -qq
+        spin "install docker-ce" \
+            sudo apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin
     else
         info "docker already installed — skipping"
     fi
@@ -615,6 +636,7 @@ else
         "$EXEGOL_RES/bin" \
         "$EXEGOL_RES/setup/zsh" \
         "$EXEGOL_RES/setup/tmux" \
+        "$EXEGOL_RES/setup/nvim" \
         "$EXEGOL_RES/setup/vim" \
         "$EXEGOL_RES/setup/apt" \
         "$EXEGOL_RES/setup/python3" \
@@ -628,6 +650,7 @@ fi
 # =============================================================================
 # 9. CONFIG FILES → my-resources/setup/
 #    tmux.conf  — overwrites container's ~/.tmux.conf
+#    nvim/      — symlinked to /root/.config/nvim by load_user_setup.sh
 #    zsh/zshrc  — APPENDED to Exegol's own zshrc (do NOT replace)
 #    zsh/aliases — sourced automatically
 #    vim/vimrc  — overwrites container's ~/.vimrc
@@ -644,11 +667,18 @@ else
         warn "no tmux.conf in dotfiles — skipping"
     fi
 
+    if [ -d "$DOTFILES_DIR/nvim" ]; then
+        cp -r "$DOTFILES_DIR/nvim/." "$EXEGOL_RES/setup/nvim/"
+        ok "nvim/      →  my-resources/setup/nvim/ (wired by load_user_setup.sh)"
+    else
+        warn "$DOTFILES_DIR/nvim not found — skipping nvim container config"
+    fi
+
     cat > "$EXEGOL_RES/setup/zsh/aliases" <<'EOF'
 # bloodstiller — API testing aliases (auto-loaded by exegol zshrc)
 
 # Wordlists — Hacking-APIs is our addition; seclists is shipped with exegol
-export APIWL='/opt/my-resources/wordlists/Hacking-APIs-main'
+export APIWL='/opt/my-resources/wordlists/Hacking-APIs'
 export SECLISTS='/usr/share/seclists'
 
 # Burp proxy toggles (burp itself is shipped with exegol)
@@ -657,7 +687,7 @@ export https_proxy_burp='http://127.0.0.1:8080'
 alias burpproxy='export http_proxy=$http_proxy_burp https_proxy=$https_proxy_burp; echo "Burp proxy ON"'
 alias unproxy='unset http_proxy https_proxy; echo "Proxy OFF"'
 
-# mitmproxy2swagger — the only API tool we install ourselves
+# mitmproxy2swagger and goclone — installed by load_user_setup.sh on first container start
 alias mp2sw='mitmproxy2swagger'
 
 # Burp Suite Pro — backgrounded so the shell stays usable.
@@ -731,12 +761,50 @@ if command -v nuclei >/dev/null 2>&1; then
     nuclei -update-templates -silent || true
 fi
 
+# Symlink Hacking-APIs wordlist to the standard container wordlist path so it
+# sits alongside seclists at /usr/share/wordlists/.
+if [ -d /opt/my-resources/wordlists/Hacking-APIs ]; then
+    mkdir -p /usr/share/wordlists
+    ln -sfn /opt/my-resources/wordlists/Hacking-APIs /usr/share/wordlists/Hacking-APIs
+    echo "[+] Linked Hacking-APIs → /usr/share/wordlists/Hacking-APIs"
+else
+    echo "[!] /opt/my-resources/wordlists/Hacking-APIs not found — run host setup first"
+fi
+
+# Symlink nvim config from my-resources into the container's config directory.
+if [ -d /opt/my-resources/setup/nvim ]; then
+    mkdir -p /root/.config
+    ln -sfn /opt/my-resources/setup/nvim /root/.config/nvim
+    echo "[+] Linked nvim config → /root/.config/nvim"
+else
+    echo "[!] /opt/my-resources/setup/nvim not found — run host setup first"
+fi
+
+# Install goclone (website cloner) via Go. Exegol full image ships Go.
+# Binary is copied to /usr/local/bin so it's on PATH for every shell.
+if ! command -v goclone >/dev/null 2>&1; then
+    if command -v go >/dev/null 2>&1; then
+        echo "[+] Installing goclone..."
+        go install github.com/imthaghost/goclone@latest
+        if [ -f "$HOME/go/bin/goclone" ]; then
+            cp "$HOME/go/bin/goclone" /usr/local/bin/goclone
+            echo "[+] goclone installed → /usr/local/bin/goclone"
+        else
+            echo "[!] goclone build succeeded but binary not found at $HOME/go/bin/goclone"
+        fi
+    else
+        echo "[!] go not found — skipping goclone install"
+    fi
+else
+    echo "[+] goclone already installed — skipping"
+fi
+
 cat > /etc/motd <<'MOTD'
 
   ┌──────────────────────────────────────────────────────────────────┐
   │  bloodstiller exegol container                                   │
   │  Native: jwt, kiterunner, arjun, kerbrute, impacket, netexec    │
-  │  Added : mitmproxy2swagger                                       │
+  │  Added : mitmproxy2swagger, goclone                              │
   │  Lists : $APIWL (Hacking-APIs), $SECLISTS (seclists)             │
   │  Proxy : burpproxy / unproxy                                     │
   └──────────────────────────────────────────────────────────────────┘
@@ -762,18 +830,16 @@ else
     section "Wordlists (Hacking-APIs)" "📚"
     mkdir -p "$WORDLISTS_DIR"
 
-    if [ ! -d "$EXEGOL_RES/wordlists/Hacking-APIs-main" ]; then
-        spin "download Hacking-APIs" \
-            wget -q https://github.com/hAPI-hacker/Hacking-APIs/archive/refs/heads/main.zip \
-                 -O /tmp/HackingAPIs.zip
-        spin "unzip Hacking-APIs"  unzip -q /tmp/HackingAPIs.zip -d "$EXEGOL_RES/wordlists/"
-        rm -f /tmp/HackingAPIs.zip
+    if [ ! -d "$EXEGOL_RES/wordlists/Hacking-APIs" ]; then
+        spin "clone Hacking-APIs wordlist" \
+            git clone --depth 1 https://github.com/hAPI-hacker/Hacking-APIs.git \
+                "$EXEGOL_RES/wordlists/Hacking-APIs"
     else
         info "Hacking-APIs already present — skipping"
     fi
 
     if [ ! -L "$WORDLISTS_DIR/Hacking-APIs" ]; then
-        safe_link_user "$EXEGOL_RES/wordlists/Hacking-APIs-main" "$WORDLISTS_DIR/Hacking-APIs"
+        safe_link_user "$EXEGOL_RES/wordlists/Hacking-APIs" "$WORDLISTS_DIR/Hacking-APIs"
     fi
 
     mark_done "wordlists"
@@ -790,33 +856,51 @@ else
     section "Burp Suite Pro Bootstrap" "🕷️"
 
     ARCH="$(uname -m)"
+    JDK_URL=""
+    JDK_TARBALL=""
     case "$ARCH" in
         x86_64|amd64)
-            JDK_URL="$JDK_URL_AMD64"
-            JDK_TARBALL="openjdk-${JDK_VERSION}_linux-x64_bin.tar.gz"
+            info "Resolving latest Eclipse Temurin JDK ${JDK_FEATURE} (x64)..."
+            JDK_URL=$(_temurin_url x64)
             ;;
         aarch64|arm64)
-            JDK_URL="$JDK_URL_ARM64"
-            JDK_TARBALL="openjdk-${JDK_VERSION}_linux-aarch64_bin.tar.gz"
+            info "Resolving latest Eclipse Temurin JDK ${JDK_FEATURE} (aarch64)..."
+            JDK_URL=$(_temurin_url aarch64)
             ;;
         *)
             warn "Unknown arch '$ARCH' — skipping Burp Pro bootstrap."
-            warn "Edit JDK_URL_* tunables at top of script and re-run."
             mark_done "burp_pro"
             ARCH=""
             ;;
     esac
 
     if [ -n "$ARCH" ]; then
-        info "Architecture: $ARCH  →  $JDK_TARBALL"
-
-        if [ ! -f "$EXEGOL_RES/bin/$JDK_TARBALL" ]; then
-            spin "download OpenJDK ${JDK_VERSION}" \
-                wget -q "$JDK_URL" -O "$EXEGOL_RES/bin/$JDK_TARBALL"
+        if [ -z "$JDK_URL" ]; then
+            warn "Could not resolve Temurin JDK URL from Adoptium API — skipping Burp Pro bootstrap."
+            mark_done "burp_pro"
         else
-            info "JDK tarball already present — skipping"
-        fi
+            JDK_TARBALL=$(basename "$JDK_URL")
+            info "Architecture: $ARCH  →  $JDK_TARBALL"
 
+            if [ ! -f "$EXEGOL_RES/bin/$JDK_TARBALL" ]; then
+                spin "download Eclipse Temurin JDK ${JDK_FEATURE}" \
+                    wget -q "$JDK_URL" -O "$EXEGOL_RES/bin/$JDK_TARBALL"
+            else
+                info "JDK tarball already present — skipping"
+            fi
+
+            # Discover the extracted directory name from the tarball rather than hardcoding it.
+            # Temurin tarballs extract to a path like jdk-21.0.x+y/.
+            JDK_DIR=$(tar -tzf "$EXEGOL_RES/bin/$JDK_TARBALL" 2>/dev/null | head -1 | cut -d/ -f1)
+            if [ -z "$JDK_DIR" ]; then
+                warn "Could not determine JDK directory name from tarball — skipping java-burp-setup.sh generation"
+                mark_done "burp_pro"
+                JDK_DIR=""
+            fi
+        fi
+    fi
+
+    if [ -n "${JDK_DIR:-}" ]; then
         cat > "$EXEGOL_RES/bin/java-burp-setup.sh" <<EOF
 #!/usr/bin/env bash
 # =============================================================================
@@ -889,13 +973,17 @@ if is_done "fonts"; then
 else
     section "Nerd Fonts" "🔤"
     mkdir -p "$HOME/.local/share/fonts/nerd-fonts"
-    spin "download Iosevka"    wget -q https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Iosevka.zip    -O /tmp/Iosevka.zip
-    spin "download CommitMono" wget -q https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CommitMono.zip -O /tmp/CommitMono.zip
-    spin "download UbuntuMono" wget -q https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/UbuntuMono.zip -O /tmp/UbuntuMono.zip
-    spin "unzip Iosevka"       unzip -q /tmp/Iosevka.zip    -d "$HOME/.local/share/fonts/nerd-fonts/Iosevka"
-    spin "unzip CommitMono"    unzip -q /tmp/CommitMono.zip -d "$HOME/.local/share/fonts/nerd-fonts/CommitMono"
-    spin "unzip UbuntuMono"    unzip -q /tmp/UbuntuMono.zip -d "$HOME/.local/share/fonts/nerd-fonts/UbuntuMono"
-    rm -f /tmp/Iosevka.zip /tmp/CommitMono.zip /tmp/UbuntuMono.zip
+    NF_VERSION=$(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest \
+        | jq -r '.tag_name // "v3.4.0"')
+    info "Nerd Fonts release: $NF_VERSION"
+    for _nf_font in Iosevka CommitMono UbuntuMono; do
+        spin "download ${_nf_font}" \
+            wget -q "https://github.com/ryanoasis/nerd-fonts/releases/download/${NF_VERSION}/${_nf_font}.zip" \
+                 -O "/tmp/${_nf_font}.zip"
+        spin "unzip ${_nf_font}" \
+            unzip -q "/tmp/${_nf_font}.zip" -d "$HOME/.local/share/fonts/nerd-fonts/${_nf_font}"
+        rm -f "/tmp/${_nf_font}.zip"
+    done
     spin "refresh font cache"  fc-cache -fv
     mark_done "fonts"
 fi
@@ -918,13 +1006,23 @@ else
     if ! command -v sops &>/dev/null; then
         info "Fetching latest sops release..."
         SOPS_VERSION=$(curl -s https://api.github.com/repos/getsops/sops/releases/latest \
-            | grep '"tag_name"' | cut -d'"' -f4)
-        spin "download sops ${SOPS_VERSION}" \
-            wget -q "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64" \
-                 -O /tmp/sops-bin
-        sudo install -m 755 /tmp/sops-bin /usr/local/bin/sops
-        rm -f /tmp/sops-bin
-        ok "sops installed → /usr/local/bin/sops"
+            | jq -r '.tag_name // empty')
+        _sops_arch=""
+        case "$(uname -m)" in
+            x86_64|amd64)  _sops_arch="amd64" ;;
+            aarch64|arm64) _sops_arch="arm64" ;;
+            *) warn "Unknown arch '$(uname -m)' — cannot download sops binary" ;;
+        esac
+        if [ -n "$SOPS_VERSION" ] && [ -n "$_sops_arch" ]; then
+            spin "download sops ${SOPS_VERSION} (${_sops_arch})" \
+                wget -q "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.${_sops_arch}" \
+                     -O /tmp/sops-bin
+            sudo install -m 755 /tmp/sops-bin /usr/local/bin/sops
+            rm -f /tmp/sops-bin
+            ok "sops installed → /usr/local/bin/sops"
+        else
+            warn "Could not resolve sops download — skipping (install manually from https://github.com/getsops/sops/releases)"
+        fi
     else
         info "sops already installed — skipping download"
     fi
