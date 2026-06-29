@@ -42,7 +42,7 @@ BG_BLUE="${ESC}[44m"
 # ──────────────────────────────────────────────────────────────────────────────
 #  Step tracking & log file
 # ──────────────────────────────────────────────────────────────────────────────
-TOTAL_STEPS=19
+TOTAL_STEPS=20
 CURRENT_STEP=0
 SCRIPT_START=$(date +%s)
 
@@ -339,6 +339,7 @@ spin "install host packages" sudo apt-get install -y -qq \
     python3 python3-pip python3-venv pipx python3-argcomplete python3-yaml \
     zsh tmux vim eza atuin bat ripgrep fd-find fzf \
     emacs \
+    btop \
     gnupg \
     openvpn \
     bash-completion \
@@ -891,7 +892,7 @@ else
 
             # Discover the extracted directory name from the tarball rather than hardcoding it.
             # Temurin tarballs extract to a path like jdk-21.0.x+y/.
-            JDK_DIR=$(tar -tzf "$EXEGOL_RES/bin/$JDK_TARBALL" 2>/dev/null | head -1 | cut -d/ -f1)
+            JDK_DIR=$(tar -tzf "$EXEGOL_RES/bin/$JDK_TARBALL" 2>/dev/null | head -1 | cut -d/ -f1) || true
             if [ -z "$JDK_DIR" ]; then
                 warn "Could not determine JDK directory name from tarball — skipping java-burp-setup.sh generation"
                 mark_done "burp_pro"
@@ -1275,6 +1276,27 @@ EOF
     ok "launcher created → ~/Tools/start-nessus.sh"
 
     mark_done "nessus"
+fi
+
+# =============================================================================
+# 20. CLAUDE CODE — AI coding assistant (https://claude.ai/code)
+# =============================================================================
+if is_done "claude_code"; then
+    skip_section "Claude Code" "🤖"
+else
+    section "Claude Code" "🤖"
+    spin_soft "install Claude Code" bash -c 'curl -fsSL https://claude.ai/install.sh | bash'
+
+    # The installer normally appends PATH to ~/.zshrc; add a fallback in case
+    # the file is a symlink that the installer skipped or wrote elsewhere.
+    if ! grep -q '\.claude/bin' "${HOME}/.zshrc" 2>/dev/null; then
+        printf '\n# Claude Code\nexport PATH="$HOME/.claude/bin:$PATH"\n' >> "${HOME}/.zshrc"
+        ok "added ~/.claude/bin to PATH in ~/.zshrc"
+    else
+        info "~/.claude/bin already present in ~/.zshrc"
+    fi
+
+    mark_done "claude_code"
 fi
 
 # =============================================================================
