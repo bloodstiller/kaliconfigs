@@ -978,14 +978,18 @@ else
         | jq -r '.tag_name // "v3.4.0"')
     info "Nerd Fonts release: $NF_VERSION"
     for _nf_font in Iosevka CommitMono UbuntuMono; do
+        if [ -d "$HOME/.local/share/fonts/nerd-fonts/${_nf_font}" ]; then
+            info "${_nf_font} already present — skipping"
+            continue
+        fi
         spin "download ${_nf_font}" \
             wget -q "https://github.com/ryanoasis/nerd-fonts/releases/download/${NF_VERSION}/${_nf_font}.zip" \
                  -O "/tmp/${_nf_font}.zip"
         spin "unzip ${_nf_font}" \
-            unzip -q "/tmp/${_nf_font}.zip" -d "$HOME/.local/share/fonts/nerd-fonts/${_nf_font}"
+            unzip -qo "/tmp/${_nf_font}.zip" -d "$HOME/.local/share/fonts/nerd-fonts/${_nf_font}"
         rm -f "/tmp/${_nf_font}.zip"
     done
-    spin "refresh font cache"  fc-cache -fv
+    spin_soft "refresh font cache"  fc-cache -f
     mark_done "fonts"
 fi
 
