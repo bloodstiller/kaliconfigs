@@ -335,7 +335,16 @@ spin "install host packages" sudo apt-get install -y -qq \
     hugo pandoc \
     ansifilter \
     alacritty \
+    kitty \
+    luarocks libmagickwand-dev \
     nodejs npm
+
+# luarocks magick — required by image.nvim for inline image rendering in Kitty
+if ! sudo luarocks list 2>/dev/null | grep -q "^magick"; then
+    spin "luarocks install magick"  sudo luarocks install magick
+else
+    info "luarocks magick already installed — skipping"
+fi
 
 # fd is packaged as fd-find on Ubuntu; doom emacs expects 'fd' on PATH
 if [ ! -e "$HOME/.local/bin/fd" ] && command -v fdfind >/dev/null 2>&1; then
@@ -344,6 +353,13 @@ if [ ! -e "$HOME/.local/bin/fd" ] && command -v fdfind >/dev/null 2>&1; then
     ok "linked fd → fdfind"
 fi
 #spin "snap install obsidian" sudo snap install obsidian --classic
+
+# Neovim — snap gives the latest stable release
+if ! command -v nvim >/dev/null 2>&1; then
+    spin "snap install neovim"  sudo snap install nvim --classic
+else
+    info "nvim already installed — skipping"
+fi
 # Create workspace directories used by engagements and tools
 mkdir -p "$HOME/Tools" "$HOME/Engagements"
 ok "created ~/Tools and ~/Engagements"
@@ -560,6 +576,27 @@ else
             "$HOME/.config/alacritty/alacritty.toml"
     else
         warn "$DOTFILES_DIR/alacritty/alacritty.toml not found — skipping"
+    fi
+
+    # Kitty terminal config
+    mkdir -p "$HOME/.config/kitty"
+    if [ -f "$DOTFILES_DIR/kitty/kitty.conf" ]; then
+        safe_link_user "$DOTFILES_DIR/kitty/kitty.conf" \
+            "$HOME/.config/kitty/kitty.conf"
+    else
+        warn "$DOTFILES_DIR/kitty/kitty.conf not found — skipping"
+    fi
+
+    # Neovim config — symlink dotfiles/nvim as ~/.config/nvim
+    if [ -d "$DOTFILES_DIR/nvim" ]; then
+        if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
+            mv "$HOME/.config/nvim" "$HOME/.config/nvim.bak"
+            warn "Backed up existing ~/.config/nvim to ~/.config/nvim.bak"
+        fi
+        ln -sfn "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
+        ok "linked ~/.config/nvim → $DOTFILES_DIR/nvim"
+    else
+        warn "$DOTFILES_DIR/nvim not found — skipping nvim config link"
     fi
 
     mark_done "dotfile_links"
@@ -987,7 +1024,11 @@ else
     else
         info "revshells already cloned — skipping"
     fi
-    spin "build revshells image"       sg docker -c "docker build -t reverse_shell_generator $HOME/Tools/reverse-shell-generator"
+    if ! docker image inspect reverse_shell_generator >/dev/null 2>&1; then
+        spin_soft "build revshells image"  docker build -t reverse_shell_generator "$HOME/Tools/reverse-shell-generator"
+    else
+        info "revshells image already built — skipping"
+    fi
 
     # ── Combined service compose (hacktricks + revshells + nessus) ────────────
     cat > "$HOME/Tools/docker-compose.yml" << 'EOF'
