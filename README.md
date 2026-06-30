@@ -1,132 +1,112 @@
-# 🔥 Bloodstiller's Neovim Config
+# bloodstiller/kaliconfigs
 
-A Doom Emacs-inspired Neovim configuration — modular, fast, and pentest-friendly.
+Dotfiles and one-shot Ubuntu provisioning for [Exegol](https://exegol.com)-based pentest workflows.
 
-## Structure
+One-shot Ubuntu VM bootstrap that installs Exegol, mirrors dotfiles into every container via `my-resources`, and bootstraps Burp Suite Pro across containers without burning extra licence activations. Built for "I'm on a Windows employer laptop, I run an Ubuntu VM, and I want my Kali muscle-memory to follow me into Exegol containers."
 
-```
-~/.config/nvim/
-├── init.lua                    # Entry point
-└── lua/
-    ├── core/
-    │   ├── options.lua         # Vim options / sane defaults
-    │   ├── keymaps.lua         # Global keymaps (SPC leader)
-    │   ├── autocmds.lua        # Autocommands
-    │   └── lazy.lua            # lazy.nvim bootstrap + loader
-    └── plugins/
-        ├── colorscheme.lua     # Catppuccin (swap freely)
-        ├── ui.lua              # lualine, bufferline, noice, dashboard, which-key
-        ├── telescope.lua       # Fuzzy finder (SPC f …)
-        ├── treesitter.lua      # Syntax + text objects
-        ├── lsp.lua             # mason + lspconfig + none-ls + Trouble
-        ├── completion.lua      # nvim-cmp + LuaSnip
-        ├── editor.lua          # neo-tree, gitsigns, autopairs, flash, todo, …
-        └── extras.lua          # REST.nvim, harpoon, DAP, markdown-preview
-```
+Companion to the Kali workflow in [`bloodstiller/kaliconfigs`](https://github.com/bloodstiller/kaliconfigs).
 
-## Install
+## Quick start
 
 ```bash
-# Back up any existing config
-mv ~/.config/nvim ~/.config/nvim.bak
-
-# Copy this config
-cp -r /path/to/this/nvim-config ~/.config/nvim
-
-# Launch — lazy.nvim auto-installs on first run
-nvim
+git clone https://github.com/bloodstiller/kaliconfigs.git ~/.dotfiles
+bash ~/.dotfiles/scripts/exegol-setup.sh
 ```
 
-On first launch, lazy.nvim will clone itself and install all plugins.
-Mason will auto-install LSP servers listed in `plugins/lsp.lua`.
-
-## Requirements
-
-| Tool       | Purpose                       |
-|------------|-------------------------------|
-| Neovim ≥ 0.10 | Core                      |
-| git        | lazy.nvim / plugin cloning    |
-| make       | telescope-fzf-native          |
-| ripgrep    | Telescope live_grep           |
-| fd         | Telescope find_files          |
-| node / npm | markdown-preview, some LSPs   |
-| A Nerd Font | Icons (e.g. JetBrainsMono NF) |
+When it finishes, open a new shell and:
 
 ```bash
-# Arch / Manjaro
-sudo pacman -S neovim ripgrep fd nodejs npm
-
-# Debian / Ubuntu
-sudo apt install neovim ripgrep fd-find nodejs npm
-
-# macOS
-brew install neovim ripgrep fd node
+exegol install full          # ~15 GB pull
+exegol start test full       # spawn your first container
 ```
 
-## Key Bindings Cheatsheet
+`exegol` is aliased to `sudo -E ~/.local/bin/exegol`, so the first invocation will prompt for sudo.
 
-Leader = `Space` | Local leader = `,`
+For full details, Burp Pro setup, customisation tunables, and troubleshooting see **[scripts/README.md](scripts/README.md)**.
 
-### Navigation
-| Key         | Action                        |
-|-------------|-------------------------------|
-| `SPC f f`   | Find files                    |
-| `SPC f r`   | Recent files                  |
-| `SPC f g`   | Live grep (ripgrep)           |
-| `SPC f b`   | Open buffers                  |
-| `SPC /`     | Fuzzy search current buffer   |
-| `SPC e`     | Toggle file explorer          |
-| `s`         | Flash jump                    |
-| `]h / [h`   | Next / prev git hunk          |
-| `]d / [d`   | Next / prev diagnostic        |
+## Prerequisites
 
-### LSP
-| Key         | Action                        |
-|-------------|-------------------------------|
-| `gd`        | Go to definition              |
-| `K`         | Hover docs                    |
-| `gr`        | References (Telescope)        |
-| `SPC c r`   | Rename symbol                 |
-| `SPC c a`   | Code action                   |
-| `SPC c f`   | Format buffer                 |
+- Fresh Ubuntu / Debian VM
+- Regular user with `sudo` rights
+- Internet access
+- (For Burp Pro section) a PortSwigger account with a Burp Pro licence
 
-### Buffers / Windows
-| Key         | Action                        |
-|-------------|-------------------------------|
-| `SPC b d`   | Delete buffer                 |
-| `SPC w v`   | Vertical split                |
-| `SPC w s`   | Horizontal split              |
-| `C-h/j/k/l` | Navigate windows              |
-| `Shift-h/l` | Prev / next buffer            |
+## What exegol-setup.sh does
 
-### Git
-| Key         | Action                        |
-|-------------|-------------------------------|
-| `SPC g g`   | Fugitive status               |
-| `SPC g h s` | Stage hunk                    |
-| `SPC g h p` | Preview hunk                  |
-| `SPC g c`   | Git commits (Telescope)       |
+Twenty checkpointed sections. Each is re-runnable; completion is tracked in `~/.exegol_setup_checkpoints/`.
 
-### Pentest Extras
-| Key         | Action                        |
-|-------------|-------------------------------|
-| `SPC r r`   | Run HTTP request (REST.nvim)  |
-| `SPC h a`   | Harpoon add file              |
-| `SPC h h`   | Harpoon menu                  |
-| `SPC 1-4`   | Jump to harpoon slot          |
-| `SPC d b`   | Toggle breakpoint (DAP)       |
+| § | Step | What it does |
+|---|---|---|
+| 1 | System Update & Host Packages | apt update/upgrade; installs git, curl, python3/pipx, zsh, tmux, emacs, age, ripgrep, fzf, eza, atuin, bat, fd-find, Node/npm, Alacritty, Kitty, luarocks; Neovim via snap; creates `~/Tools` and `~/Engagements` |
+| 2 | Obsidian | Fetches and installs the latest Obsidian `.deb` from GitHub releases |
+| 3 | Docker Engine | Installs `docker-ce` via the official Docker apt repo; `systemctl enable` (no docker group — see `scripts/README.md`) |
+| 4 | Exegol Wrapper | `pipx install exegol`, argcomplete for zsh + bash, `sudo -E` alias |
+| 5 | Dotfiles | Clones `kaliconfigs` to `~/.dotfiles` |
+| 6 | Oh My Zsh & Plugins | OMZ + `zsh-syntax-highlighting`, `zsh-autosuggestions`, `fast-syntax-highlighting`, `fzf-tab`; tmux plugin manager (tpm); `chsh` to zsh |
+| 7 | Doom Emacs | Clones `doomemacs`, runs `doom install` |
+| 8 | Host Dotfile Symlinks | Links `~/.zshrc`, `~/.zshenv`, `~/.tmux.conf`; Doom `.el` files; Alacritty + Kitty configs; `~/.config/nvim` |
+| 9 | my-resources Scaffold | Creates full `~/.exegol/my-resources/` tree (`bin/`, `setup/zsh`, `tmux`, `nvim`, `vim`, `apt`, `python3`, `firefox`, `arsenal-cheats`, `wordlists`) |
+| 10 | Container Configs | Copies `tmux.conf`, `nvim/` config, zsh `aliases`, `vimrc` into `my-resources/setup/` |
+| 11 | Container Packages | Seeds `apt/packages.list` (`eza`) and `python3/requirements.txt` (`mitmproxy2swagger`) |
+| 12 | load_user_setup.sh | Generates per-container first-run script: nuclei template refresh, Hacking-APIs symlink, nvim config symlink, `goclone` install, MOTD |
+| 13 | Wordlists | Clones Hacking-APIs to `my-resources/wordlists/`; symlinks to `~/wordlists/` |
+| 14 | Burp Suite Pro Bootstrap | Resolves + downloads Eclipse Temurin JDK 21 LTS via Adoptium API; generates `java-burp-setup.sh` |
+| 15 | Nerd Fonts | Downloads Iosevka, CommitMono, UbuntuMono from ryanoasis/nerd-fonts; runs `fc-cache` |
+| 16 | SSH Secrets | Installs `sops`; prompts for age private key (no echo); decrypts `secrets/ssh_keys.yaml` and deploys keys to `~/.ssh/` with correct permissions |
+| 17 | Doom Sync & Git Config | `doom sync`; sets `git config user.name/email`; switches dotfiles remote to SSH URL |
+| 18 | VMware Shared Folder | Mounts `/mnt/hgfs` via `vmhgfs-fuse`; adds fstab entry; symlinks `~/Pentest` (non-fatal — safe to skip on bare metal) |
+| 19 | HackTricks & RevShells | Clones HackTricks wiki + reverse-shell-generator; builds Docker image; creates `docker-compose.yml` + `start-services.sh` launcher |
+| 20 | Nessus | Docker Compose service for `tenable/nessus`; `.env` credential template; `start-nessus.sh` launcher |
+| +1 | Claude Code | Installs Claude Code via official installer; ensures `~/.claude/bin` on PATH |
 
-### UI Toggles
-| Key         | Action                        |
-|-------------|-------------------------------|
-| `SPC u z`   | Zen mode                      |
-| `SPC u w`   | Toggle wrap                   |
-| `SPC u s`   | Toggle spell check            |
-| `SPC ?`     | Show ALL keymaps (which-key)  |
+Full script docs, customisation tunables, re-running individual sections, and troubleshooting: **[scripts/README.md](scripts/README.md)**.
 
-## Customising
+## Repository layout
 
-- **Add an LSP server**: add to `ensure_installed` in `plugins/lsp.lua`
-- **Change theme**: edit `plugins/colorscheme.lua`
-- **Add a plugin**: create a new file in `lua/plugins/` returning a lazy spec table
-- **Obsidian wiki editing**: uncomment the `obsidian.nvim` block in `plugins/extras.lua`
+```
+~/.dotfiles/
+├── scripts/
+│   ├── exegol-setup.sh      # main provisioning script (run this first)
+│   └── README.md            # full setup docs, Burp Pro, troubleshooting
+├── nvim/                    # Neovim config (lazy.nvim, LSP, Telescope, DAP)
+│   └── README.md            # keybind cheatsheet and customisation guide
+├── Doom/                    # Doom Emacs config
+│   └── README.org
+├── Tmux/                    # tmux config
+│   └── README.org
+├── Zsh/                     # .zshrc and .zshenv
+├── alacritty/               # Alacritty terminal config
+├── kitty/                   # Kitty terminal config
+└── pentest-tools/           # version-pinned offensive tool manifest + fetch scripts
+    └── README.md
+```
+
+## Dotfiles
+
+`exegol-setup.sh` section 6 symlinks `~/.zshrc`, `~/.zshenv`, and `~/.tmux.conf` from the directories below.
+
+| Directory | Config | More info |
+|-----------|--------|-----------|
+| `nvim/` | Neovim — lazy.nvim, Catppuccin, Telescope, LSP via Mason, DAP, Harpoon | [nvim/README.md](nvim/README.md) |
+| `Doom/` | Doom Emacs | [Doom/README.org](Doom/README.org) |
+| `Tmux/` | tmux | [Tmux/README.org](Tmux/README.org) |
+| `Zsh/` | `.zshrc`, `.zshenv` | — |
+| `alacritty/` | Alacritty terminal | — |
+| `kitty/` | Kitty terminal | — |
+
+## Pentest tools
+
+`pentest-tools/` holds a version-pinned manifest of offensive binaries (chisel, ligolo-ng, linpeas, mimikatz, SharpHound, impacket-static, Rubeus, and more) with fetch scripts for Linux and Windows. The repo stores the manifest, not the binaries — binaries are pulled on demand into a git-ignored `vendor/` directory.
+
+See [pentest-tools/README.md](pentest-tools/README.md) for the full tool list, fetch instructions, and how to add or update tools.
+
+## Credits
+
+- [Exegol](https://github.com/ThePorgs/Exegol) by ThePorgs — the framework this script provisions
+- [Greg Scharf's Burp Pro guide](https://blog.gregscharf.com/2025/07/23/burp-suite-pro-install-in-exegol/) — the prefs.xml propagation trick
+- [Greg Scharf's Exegol setup guide](https://blog.gregscharf.com/2023/04/01/exegol-hacking-framework-setup/) — early my-resources layout reference
+- [Exegol docs: my-resources](https://docs.exegol.com/images/my-resources) — canonical reference for the customisation surface
+
+## Licence
+
+Personal use. Adapt freely.
