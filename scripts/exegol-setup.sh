@@ -345,6 +345,7 @@ spin "install host packages" sudo apt-get install -y -qq \
     bash-completion \
     fonts-firacode \
     flameshot syncthing \
+    libfuse2t64 \
     hugo pandoc \
     ansifilter \
     alacritty \
