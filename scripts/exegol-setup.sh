@@ -338,6 +338,7 @@ spin "install host packages" sudo apt-get install -y -qq \
     ca-certificates curl wget git unzip jq \
     python3 python3-pip python3-venv pipx python3-argcomplete python3-yaml \
     zsh tmux vim eza atuin bat ripgrep fd-find fzf \
+    keepassxc \
     emacs \
     btop \
     gnupg \
