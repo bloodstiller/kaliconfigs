@@ -12,6 +12,8 @@
 #    5.  Wires your tmux / zsh / doom configs via symlinks.
 #    6.  Wires your tmux / zsh configs into ~/.exegol/my-resources/setup/ so
 #        EVERY exegol container you ever spin up inherits them automatically.
+#        Also wires load_user_setup.sh to scaffold a box folder structure
+#        (loot/ticket/scans/payloads) in /workspace on first container start.
 #    7.  Pre-positions mitmproxy2swagger and the Hacking-APIs wordlist.
 #    8.  Scaffolds Burp Suite Pro for per-container activation.
 #    9.  Installs sops, prompts for your age key, deploys SSH keys from the
@@ -42,7 +44,7 @@ BG_BLUE="${ESC}[44m"
 # ──────────────────────────────────────────────────────────────────────────────
 #  Step tracking & log file
 # ──────────────────────────────────────────────────────────────────────────────
-TOTAL_STEPS=20
+TOTAL_STEPS=23
 CURRENT_STEP=0
 SCRIPT_START=$(date +%s)
 
@@ -71,6 +73,12 @@ DF_ZSHENV="$DOTFILES_DIR/Zsh/.zshenv"
 DF_TMUX="$DOTFILES_DIR/Tmux/.tmux.conf"
 
 AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+
+# ── pyenv / prowler ───────────────────────────────────────────────────────────
+# Prowler is pinned to a pyenv-managed interpreter so it never breaks when
+# Ubuntu bumps the system python. Change PYENV_PY to move prowler's runtime.
+PYENV_ROOT_DIR="$HOME/.pyenv"
+PYENV_PY=3.12
 
 # ── Burp Suite Pro / JDK ──────────────────────────────────────────────────────
 # JDK version is resolved at runtime via the Eclipse Temurin (Adoptium) API.
@@ -338,6 +346,7 @@ spin "install host packages" sudo apt-get install -y -qq \
     ca-certificates curl wget git unzip jq \
     python3 python3-pip python3-venv pipx python3-argcomplete python3-yaml \
     zsh tmux vim eza atuin bat ripgrep fd-find fzf \
+    keepassxc \
     emacs \
     btop \
     gnupg \
@@ -763,6 +772,30 @@ if command -v nuclei >/dev/null 2>&1; then
     nuclei -update-templates -silent || true
 fi
 
+# Scaffold the box folder structure inside /workspace — mirrors the folder
+# layout from the Obsidian box-bootstrap Templater script (loot, ticket,
+# scans/*, payloads) so the container's working dir matches the wiki note
+# from the first command. /workspace is exegol's per-container persistent
+# mount, so the container name already IS the box name — nothing to prompt
+# for. Safe to re-run: mkdir -p is a no-op on existing folders.
+if [ -d /workspace ]; then
+    echo "[+] Scaffolding box folder structure in /workspace..."
+    mkdir -p \
+        /workspace/loot \
+        /workspace/ticket \
+        /workspace/scans/nmap \
+        /workspace/scans/bloodhound \
+        /workspace/scans/ldap \
+        /workspace/scans/burpsuite \
+        /workspace/scans/nikto \
+        /workspace/scans/nuclei \
+        /workspace/scans/nessus \
+        /workspace/payloads
+    echo "[+] Box folders ready → /workspace/{loot,ticket,scans/*,payloads}"
+else
+    echo "[!] /workspace not found — skipping box folder scaffold"
+fi
+
 # Symlink Hacking-APIs wordlist to the standard container wordlist path so it
 # sits alongside seclists at /usr/share/wordlists/.
 if [ -d /opt/my-resources/wordlists/Hacking-APIs ]; then
@@ -809,6 +842,7 @@ cat > /etc/motd <<'MOTD'
   │  Added : mitmproxy2swagger, goclone                              │
   │  Lists : $APIWL (Hacking-APIs), $SECLISTS (seclists)             │
   │  Proxy : burpproxy / unproxy                                     │
+  │  Box   : /workspace/{loot,ticket,scans/*,payloads}                │
   └──────────────────────────────────────────────────────────────────┘
 
 MOTD
@@ -1284,7 +1318,142 @@ EOF
 fi
 
 # =============================================================================
-# 20. CLAUDE CODE — AI coding assistant (https://claude.ai/code)
+# 20. GOOGLE CLOUD CLI — apt repo + keyring (cloud engagement tooling)
+#     Sits alongside the az / aws CLIs for GCP-scoped assessments.
+# =============================================================================
+if is_done "gcloud"; then
+    skip_section "Google Cloud CLI" "☁️"
+else
+    section "Google Cloud CLI" "☁️"
+
+    if ! command -v gcloud >/dev/null 2>&1; then
+        spin "install gcloud prerequisites" \
+            sudo apt-get install -y -qq ca-certificates gnupg curl
+
+        # Keyring is rewritten each run — --yes stops gpg prompting on re-run.
+        spin "add google cloud GPG key" \
+            bash -c 'curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+                | sudo gpg --dearmor --yes -o /usr/share/keyrings/cloud.google.gpg'
+
+        # tee (not tee -a) so re-runs cannot stack duplicate source lines.
+        spin "add google cloud apt source" \
+            bash -c 'echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] \
+                https://packages.cloud.google.com/apt cloud-sdk main" \
+                | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list > /dev/null'
+
+        spin "apt update (google cloud source)"  sudo apt-get update -qq
+        spin "install google-cloud-cli"  sudo apt-get install -y -qq google-cloud-cli
+        ok "gcloud installed — authenticate with: gcloud auth login"
+    else
+        info "gcloud already installed — skipping"
+    fi
+
+    mark_done "gcloud"
+fi
+
+# =============================================================================
+# 21. PYENV — per-project python versions independent of the system interpreter
+#     Build deps come first; without them CPython compiles with missing
+#     modules (no ssl / sqlite3 / lzma) and pip breaks in confusing ways.
+# =============================================================================
+if is_done "pyenv"; then
+    skip_section "pyenv" "🐍"
+else
+    section "pyenv" "🐍"
+
+    spin "install python build dependencies" \
+        sudo apt-get install -y -qq build-essential libssl-dev zlib1g-dev libbz2-dev \
+            libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev \
+            libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+
+    if [ ! -d "$PYENV_ROOT_DIR" ]; then
+        spin "install pyenv"  bash -c 'curl -fsSL https://pyenv.run | bash'
+    else
+        info "pyenv already present — skipping installer"
+    fi
+
+    export PYENV_ROOT="$PYENV_ROOT_DIR"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+
+    if command -v pyenv >/dev/null 2>&1; then
+        eval "$(pyenv init -)"
+
+        # Written to .zshenv, not .zshrc — section 7 symlinks .zshrc from the
+        # dotfiles repo and would silently clobber anything appended here.
+        for rc in "$HOME/.bashrc" "$HOME/.zshenv"; do
+            if [ -f "$rc" ] && ! grep -qF 'PYENV_ROOT' "$rc"; then
+                cat >> "$rc" << 'EOF'
+
+# pyenv
+export PYENV_ROOT="$HOME/.pyenv"
+[ -d "$PYENV_ROOT/bin" ] && export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+EOF
+                ok "added pyenv init → $rc"
+            fi
+        done
+
+        # Resolve the newest patch release for the requested minor series.
+        PYENV_PY_FULL=$(pyenv install --list 2>/dev/null \
+            | tr -d ' ' \
+            | grep -E "^${PYENV_PY}\.[0-9]+$" \
+            | tail -1)
+
+        if [ -z "${PYENV_PY_FULL:-}" ]; then
+            warn "no python ${PYENV_PY}.x available from pyenv — skipping build"
+        elif pyenv versions --bare 2>/dev/null | grep -qx "$PYENV_PY_FULL"; then
+            info "python ${PYENV_PY_FULL} already built — skipping"
+        else
+            info "building python ${PYENV_PY_FULL} from source (this takes a few minutes)"
+            spin "pyenv install ${PYENV_PY_FULL}"  pyenv install -s "$PYENV_PY_FULL"
+        fi
+    else
+        warn "pyenv not on PATH after install — skipping python build"
+    fi
+
+    mark_done "pyenv"
+fi
+
+# =============================================================================
+# 22. PROWLER — cloud security posture scanning (AWS / Azure / GCP / K8s)
+#     Installed via pipx against the pyenv interpreter rather than the system
+#     python, so an Ubuntu python upgrade cannot orphan the venv.
+# =============================================================================
+if is_done "prowler"; then
+    skip_section "Prowler" "🛡️"
+else
+    section "Prowler" "🛡️"
+
+    export PYENV_ROOT="$PYENV_ROOT_DIR"
+    export PATH="$PYENV_ROOT/bin:$HOME/.local/bin:$PATH"
+
+    PROWLER_PY=""
+    if command -v pyenv >/dev/null 2>&1; then
+        # Absolute interpreter path — shims depend on an interactive shell.
+        PROWLER_PY=$(find "$PYENV_ROOT/versions" -maxdepth 1 -type d \
+            -name "${PYENV_PY}.*" 2>/dev/null | sort -V | tail -1)
+        [ -n "$PROWLER_PY" ] && PROWLER_PY="$PROWLER_PY/bin/python"
+    fi
+
+    if [ -n "$PROWLER_PY" ] && [ -x "$PROWLER_PY" ]; then
+        info "using interpreter: $PROWLER_PY"
+    else
+        warn "no pyenv ${PYENV_PY}.x found — falling back to system python3"
+        PROWLER_PY=$(command -v python3)
+    fi
+
+    if ! command -v prowler >/dev/null 2>&1; then
+        spin "pipx install prowler"  pipx install prowler --python "$PROWLER_PY"
+    else
+        info "prowler already installed — running upgrade instead"
+        spin_soft "pipx upgrade prowler"  pipx upgrade prowler
+    fi
+
+    mark_done "prowler"
+fi
+
+# =============================================================================
+# 23. CLAUDE CODE — AI coding assistant (https://claude.ai/code)
 # =============================================================================
 if is_done "claude_code"; then
     skip_section "Claude Code" "🤖"
@@ -1367,4 +1536,10 @@ printf "  ${CYAN}→${RESET}  ${DIM}HackTricks  → ${RESET}${BOLD}http://localh
 printf "  ${CYAN}→${RESET}  ${DIM}RevShells   → ${RESET}${BOLD}http://localhost:9988${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${DIM}Nessus      → ${RESET}${BOLD}https://localhost:8834${RESET}${DIM}  (allow ~2 min to start)${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${DIM}Nessus only: ${RESET}${BOLD}~/Tools/start-nessus.sh start${RESET}\n"
+printf "\n"
+printf "  ${BOLD}${YELLOW}☁️  Cloud tooling (gcloud / pyenv / prowler)${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Authenticate GCP:${RESET}  ${BOLD}gcloud auth login && gcloud auth application-default login${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}pyenv needs a new shell before ${RESET}${BOLD}pyenv${RESET}${DIM} is on PATH.${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Prowler is pinned to the pyenv ${RESET}${BOLD}%s${RESET}${DIM} interpreter, not system python.${RESET}\n" "$PYENV_PY"
+printf "  ${CYAN}→${RESET}  ${DIM}Run a scan:${RESET}  ${BOLD}prowler gcp${RESET}${DIM} / ${RESET}${BOLD}prowler aws${RESET}${DIM} / ${RESET}${BOLD}prowler azure${RESET}\n"
 printf "\n"
