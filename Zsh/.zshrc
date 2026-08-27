@@ -160,19 +160,21 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 
-# pyenv — lazy: only initialises when pyenv/python/pip/etc. are first called
+# pyenv — lazy init, only on first use
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+
 _pyenv_lazy_init() {
+  local cmd=$1; shift
   unfunction pyenv python python3 pip pip3 2>/dev/null
-  eval "$(pyenv init - zsh)"
-  # Re-dispatch the original command
-  "$0" "$@"
+  eval "$(command pyenv init - zsh)"
+  command -v "$cmd" >/dev/null && "$cmd" "$@"
 }
 for _cmd in pyenv python python3 pip pip3; do
-  functions[$_cmd]="_pyenv_lazy_init"
+  eval "$_cmd() { _pyenv_lazy_init $_cmd \"\$@\" }"
 done
 unset _cmd
+
 
 # ── HTB / Engagement vars ──────────────────────────────────────────────────────
 export box="10.129.19.42"
