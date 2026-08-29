@@ -12,8 +12,11 @@
 #    5.  Wires your tmux / zsh / doom configs via symlinks.
 #    6.  Wires your tmux / zsh configs into ~/.exegol/my-resources/setup/ so
 #        EVERY exegol container you ever spin up inherits them automatically.
+#        zsh/aliases (auto-loaded) and zsh/zshrc (appended by exegol) carry
+#        only the container-safe subset of ~/.zshrc — see inline comments.
 #        Also wires load_user_setup.sh to scaffold a box folder structure
-#        (loot/ticket/scans/payloads) in /workspace on first container start.
+#        (loot/ticket/scans/payloads) and a /workspace/.env for per-box vars
+#        (box/machine/domain, editable via `update_var`) on first container start.
 #    7.  Pre-positions mitmproxy2swagger and the Hacking-APIs wordlist.
 #    8.  Scaffolds Burp Suite Pro for per-container activation.
 #    9.  Installs sops, prompts for your age key, deploys SSH keys from the
@@ -705,6 +708,21 @@ alias mp2sw='mitmproxy2swagger'
 # Requires java-burp-setup.sh to have been run inside this container once.
 alias burp='nohup java -jar /opt/my-resources/bin/BurpSuitePro/burpsuite_pro.jar >/dev/null 2>&1 & disown'
 
+# ── from ~/.zshrc — container-safe subset only ─────────────────────────────
+# (host-only bits — oh-my-zsh sourcing, theme, compinit, HISTFILE, doom/dotfiles
+#  aliases, the `exegol` wrapper alias — deliberately left out; see zsh/zshrc
+#  below for the rest. Full rationale: bloodstiller.com box-bootstrap notes.)
+alias ls='eza -T -L=1 -a -B -h -l -g --icons'
+alias lsl='eza -T -L=2 -a -B -h -l -g --icons'
+alias lss='eza -T -L=1 -B -h -l -g --icons'
+command -v batcat >/dev/null 2>&1 && alias cat='batcat'
+alias urldecode='python3 -c "import sys, urllib.parse as ul; print(ul.unquote_plus(sys.argv[1]))"'
+alias urlencode='python3 -c "import sys, urllib.parse as ul; print(ul.quote_plus(sys.argv[1]))"'
+alias pws='python3 -m http.server 9000'
+# Ligolo tun interface — needs NET_ADMIN in the container (exegol full image,
+# started with adequate privileges); no-ops with an error otherwise.
+alias lgu='sudo ip tuntap add user $(whoami) mode tun ligolo && sudo ip link set ligolo up'
+
 # Reminders for exegol-native tools (so muscle-memory from kali works):
 #   jwt           → ticarpi/jwt_tool
 #   kiterunner    → assetnote/kiterunner
@@ -712,6 +730,55 @@ alias burp='nohup java -jar /opt/my-resources/bin/BurpSuitePro/burpsuite_pro.jar
 #   kerbrute      → ropnop/kerbrute
 EOF
     ok "zsh aliases  →  my-resources/setup/zsh/aliases"
+
+    # zsh/zshrc — exegol APPENDS this to the end of its own zshrc routine
+    # (never replaces it). Keep this additive-only: no compinit, no theme/
+    # plugin re-sourcing, no HISTFILE override — those belong to exegol's
+    # own zshrc and duplicating them here is what the docs warn against.
+    cat > "$EXEGOL_RES/setup/zsh/zshrc" <<'EOF'
+# bloodstiller — appended to exegol's zshrc on every new container.
+# Additive only — do not redefine ZSH_THEME/plugins/compinit/HISTFILE here;
+# exegol's own zshrc already owns those.
+
+# ── Engagement variables ────────────────────────────────────────────────────
+# Persisted in /workspace/.env (survives container restarts — /workspace is
+# exegol's per-container mount). Edit directly, or: update_var box 10.10.10.5
+[ -f /workspace/.env ] && source /workspace/.env
+
+update_var() {
+    local envfile="/workspace/.env"
+    touch "$envfile"
+    if grep -q "^export $1=" "$envfile" 2>/dev/null; then
+        sed -i "s|^export $1=.*|export $1=\"$2\"|" "$envfile"
+    else
+        echo "export $1=\"$2\"" >> "$envfile"
+    fi
+    source "$envfile"
+}
+
+txtlog2md() {
+    setopt localoptions nullglob
+    local files=( *.txt *.log )
+    (( ${#files} )) || { echo "No .txt or .log files found."; return 1; }
+    for f in $files; do
+        mv -- "$f" "${f%.*}.md"
+    done
+}
+
+# ── Tmux auto-logging — one file per pane per day under ~/tmux_logs ────────
+if [ -n "$TMUX_PANE" ] && [ "$TMUX_PANE_LOGGING" != "1" ]; then
+    export TMUX_PANE_LOGGING=1
+    LOGS="$HOME/tmux_logs/$(date +%Y-%m-%d)"
+    mkdir -p "$LOGS"
+    LOG_PATH="$LOGS/pane${TMUX_PANE//[^0-9]/}.log"
+    tmux pipe-pane -o "ansifilter >> $LOG_PATH"
+fi
+
+# ── Deferred heavy init — guarded, so it's a silent no-op if not installed ─
+command -v atuin  >/dev/null 2>&1 && eval "$(atuin init zsh)"
+(( $+commands[pip] )) && eval "$(register-python-argcomplete pip)" &!
+EOF
+    ok "zsh zshrc    →  my-resources/setup/zsh/zshrc (appended by exegol)"
 
     if [ -f "$HOME/.vimrc" ]; then
         cp "$HOME/.vimrc" "$EXEGOL_RES/setup/vim/vimrc"
@@ -792,6 +859,21 @@ if [ -d /workspace ]; then
         /workspace/scans/nessus \
         /workspace/payloads
     echo "[+] Box folders ready → /workspace/{loot,ticket,scans/*,payloads}"
+
+    # Engagement vars file — sourced by my-resources/setup/zsh/zshrc, edited
+    # via `update_var box <ip>` etc. Only seeded once; never overwritten.
+    if [ ! -f /workspace/.env ]; then
+        cat > /workspace/.env <<'ENV_EOF'
+# bloodstiller — per-box engagement variables. Edit directly or via
+# `update_var <name> <value>` (defined in zsh/zshrc). Sourced on every shell.
+export box=""
+export machine=""
+export domain=""
+ENV_EOF
+        echo "[+] Seeded /workspace/.env with box/machine/domain placeholders"
+    else
+        echo "[+] /workspace/.env already present — leaving as-is"
+    fi
 else
     echo "[!] /workspace not found — skipping box folder scaffold"
 fi
@@ -1505,6 +1587,7 @@ printf "  ${BOLD}${YELLOW}⚠  A note on the zsh integration${RESET}\n"
 printf "  ${DIM}Exegol APPENDS my-resources/setup/zsh/zshrc to its own zshrc — it does NOT${RESET}\n"
 printf "  ${DIM}replace it. If you see plugin double-load or theme weirdness, edit${RESET}\n"
 printf "  ${DIM}~/.exegol/my-resources/setup/zsh/zshrc on the HOST and recreate the container.${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Per-box vars live in ${RESET}${BOLD}/workspace/.env${RESET}${DIM} — set with ${RESET}${BOLD}update_var box 10.10.10.5${RESET}\n"
 printf "\n"
 printf "  ${BOLD}${YELLOW}⚠  SSH secrets / age key${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${DIM}Age key persists at ${RESET}${BOLD}~/.config/sops/age/keys.txt${RESET}${DIM} (chmod 600)${RESET}\n"
