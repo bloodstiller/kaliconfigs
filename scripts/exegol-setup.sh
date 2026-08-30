@@ -47,7 +47,7 @@ BG_BLUE="${ESC}[44m"
 # ──────────────────────────────────────────────────────────────────────────────
 #  Step tracking & log file
 # ──────────────────────────────────────────────────────────────────────────────
-TOTAL_STEPS=23
+TOTAL_STEPS=25
 CURRENT_STEP=0
 SCRIPT_START=$(date +%s)
 
@@ -924,6 +924,8 @@ cat > /etc/motd <<'MOTD'
   │  Added : mitmproxy2swagger, goclone                              │
   │  Lists : $APIWL (Hacking-APIs), $SECLISTS (seclists)             │
   │  Proxy : burpproxy / unproxy                                     │
+  │  C#    : /opt/my-resources/bin/SharpCollection/NetFramework_4.7_x86 │
+  │  Pivot : /opt/my-resources/bin/ligolo-ng/{agent,proxy}/<platform> │
   │  Box   : /workspace/{loot,ticket,scans/*,payloads}                │
   └──────────────────────────────────────────────────────────────────┘
 
@@ -1556,6 +1558,102 @@ else
 fi
 
 # =============================================================================
+# 24. SHARPCOLLECTION — Flangvik's compiled offensive C# binaries
+#     Sparse-checkout so we only ever pull NetFramework_4.7_x86 (the repo
+#     ships every framework/arch combo and is large if cloned in full).
+# =============================================================================
+if is_done "sharpcollection"; then
+    skip_section "SharpCollection" "🗡️"
+else
+    section "SharpCollection" "🗡️"
+
+    SHARPCOLLECTION_DIR="$EXEGOL_RES/bin/SharpCollection"
+    SHARPCOLLECTION_SUBDIR="NetFramework_4.7_x86"
+
+    if [ ! -d "$SHARPCOLLECTION_DIR/.git" ]; then
+        spin "clone SharpCollection (sparse: ${SHARPCOLLECTION_SUBDIR})" \
+            git clone --filter=blob:none --no-checkout --depth 1 \
+                https://github.com/Flangvik/SharpCollection.git "$SHARPCOLLECTION_DIR"
+        (
+            cd "$SHARPCOLLECTION_DIR"
+            git sparse-checkout init --cone
+            git sparse-checkout set "$SHARPCOLLECTION_SUBDIR"
+            git checkout master
+        ) >>"$LOG" 2>&1
+        ok "SharpCollection (${SHARPCOLLECTION_SUBDIR}) cloned → $SHARPCOLLECTION_DIR"
+    else
+        info "SharpCollection already present — pulling latest"
+        spin_soft "update SharpCollection"  git -C "$SHARPCOLLECTION_DIR" pull --depth 1
+    fi
+
+    mark_done "sharpcollection"
+fi
+
+# =============================================================================
+# 25. LIGOLO-NG — latest proxy + agent binaries, every published platform
+#     Agents get pushed onto whatever the target happens to be (Windows,
+#     Linux, any arch), so we pull every asset rather than guessing one.
+# =============================================================================
+if is_done "ligolo_ng"; then
+    skip_section "Ligolo-ng" "🧦"
+else
+    section "Ligolo-ng" "🧦"
+
+    LIGOLO_DIR="$EXEGOL_RES/bin/ligolo-ng"
+    mkdir -p "$LIGOLO_DIR/proxy" "$LIGOLO_DIR/agent"
+
+    info "Resolving latest ligolo-ng release..."
+    LIGOLO_JSON=$(curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest)
+    LIGOLO_VERSION=$(printf '%s' "$LIGOLO_JSON" | jq -r '.tag_name // empty')
+
+    if [ -z "$LIGOLO_VERSION" ]; then
+        warn "Could not resolve latest ligolo-ng release — skipping"
+    else
+        info "ligolo-ng release: $LIGOLO_VERSION"
+
+        LIGOLO_COUNT=0
+        while IFS=$'\t' read -r asset_name asset_url; do
+            [ -z "$asset_name" ] && continue
+            case "$asset_name" in
+                *agent*) kind="agent" ;;
+                *proxy*) kind="proxy" ;;
+                *)       continue ;;
+            esac
+
+            # e.g. ligolo-ng_agent_0.7.5_linux_amd64.tar.gz -> linux_amd64
+            plat=$(printf '%s' "$asset_name" \
+                | sed -E "s/^ligolo-ng_${kind}_[^_]+_//; s/\.(tar\.gz|zip)\$//")
+            dest="$LIGOLO_DIR/$kind/$plat"
+            mkdir -p "$dest"
+
+            if [ -f "$dest/.version" ] && [ "$(cat "$dest/.version")" = "$LIGOLO_VERSION" ]; then
+                continue
+            fi
+
+            spin "download $asset_name" \
+                wget -q "$asset_url" -O "/tmp/$asset_name"
+            case "$asset_name" in
+                *.tar.gz) tar -xzf "/tmp/$asset_name" -C "$dest" ;;
+                *.zip)    unzip -qo "/tmp/$asset_name" -d "$dest" ;;
+            esac
+            rm -f "/tmp/$asset_name"
+            chmod +x "$dest"/agent "$dest"/proxy 2>/dev/null || true
+            echo "$LIGOLO_VERSION" > "$dest/.version"
+            LIGOLO_COUNT=$(( LIGOLO_COUNT + 1 ))
+        done < <(printf '%s' "$LIGOLO_JSON" \
+            | jq -r '.assets[] | select(.name | test("^ligolo-ng_(agent|proxy)_")) | "\(.name)\t\(.browser_download_url)"')
+
+        if [ "$LIGOLO_COUNT" -gt 0 ]; then
+            ok "ligolo-ng ${LIGOLO_VERSION}: ${LIGOLO_COUNT} platform binaries → $LIGOLO_DIR/{agent,proxy}/<platform>/"
+        else
+            info "ligolo-ng ${LIGOLO_VERSION} — all platform binaries already up to date"
+        fi
+    fi
+
+    mark_done "ligolo_ng"
+fi
+
+# =============================================================================
 # DONE
 # =============================================================================
 kill "$SUDO_KEEPALIVE_PID" 2>/dev/null
@@ -1625,4 +1723,10 @@ printf "  ${CYAN}→${RESET}  ${DIM}Authenticate GCP:${RESET}  ${BOLD}gcloud aut
 printf "  ${CYAN}→${RESET}  ${DIM}pyenv needs a new shell before ${RESET}${BOLD}pyenv${RESET}${DIM} is on PATH.${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${DIM}Prowler is pinned to the pyenv ${RESET}${BOLD}%s${RESET}${DIM} interpreter, not system python.${RESET}\n" "$PYENV_PY"
 printf "  ${CYAN}→${RESET}  ${DIM}Run a scan:${RESET}  ${BOLD}prowler gcp${RESET}${DIM} / ${RESET}${BOLD}prowler aws${RESET}${DIM} / ${RESET}${BOLD}prowler azure${RESET}\n"
+printf "\n"
+printf "  ${BOLD}${YELLOW}🗡️  SharpCollection & Ligolo-ng${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}SharpCollection (NetFramework_4.7_x86):${RESET} ${BOLD}/opt/my-resources/bin/SharpCollection/NetFramework_4.7_x86${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Ligolo-ng proxy (run inside container):${RESET} ${BOLD}/opt/my-resources/bin/ligolo-ng/proxy/<platform>/proxy${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Ligolo-ng agents (push to targets):${RESET}     ${BOLD}/opt/my-resources/bin/ligolo-ng/agent/<platform>/agent${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Both re-download only when a newer GitHub release is published.${RESET}\n"
 printf "\n"
