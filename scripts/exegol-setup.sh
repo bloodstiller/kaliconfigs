@@ -94,6 +94,35 @@ _temurin_url() {
         | jq -r '.[0].binary.package.link // empty'
 }
 
+# GitHub REST calls are capped at 60/hr per IP when unauthenticated — easy to
+# burn through across a full host-setup run (Obsidian, Nerd Fonts, sops,
+# ligolo-ng all hit api.github.com). If $GITHUB_TOKEN is set, use it to raise
+# the ceiling to 5000/hr. Always returns the raw body on stdout; the caller
+# checks the return code, so a rate-limit (or any other failure) can be
+# retried on the next run instead of silently no-op'ing.
+_gh_api() {
+    local url="$1" body status
+    local -a curl_args=(-s -w '\n%{http_code}' "$url")
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl_args=(-s -w '\n%{http_code}' -H "Authorization: Bearer ${GITHUB_TOKEN}" "$url")
+    fi
+    local resp
+    resp=$(curl "${curl_args[@]}")
+    status="${resp##*$'\n'}"
+    body="${resp%$'\n'"$status"}"
+
+    if [ "$status" != "200" ]; then
+        local reset_msg=""
+        if printf '%s' "$body" | grep -qi 'rate limit'; then
+            reset_msg=" — set \$GITHUB_TOKEN to raise the 60/hr limit, or wait for it to reset"
+        fi
+        warn "GitHub API request failed (HTTP $status): $url${reset_msg}"
+        return 1
+    fi
+
+    printf '%s' "$body"
+}
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  Output helpers
 # ──────────────────────────────────────────────────────────────────────────────
@@ -333,6 +362,29 @@ trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null; printf "\n${RED}  ✘  Script inte
 export DEBIAN_FRONTEND=noninteractive
 echo "postfix postfix/main_mailer_type select No configuration" | sudo debconf-set-selections >/dev/null 2>&1
 
+# GitHub REST calls (Obsidian, Nerd Fonts, sops, ligolo-ng) are capped at
+# 60/hr per IP when unauthenticated — easy to exhaust over a full run.
+# A token raises that to 5000/hr. Kept in-memory only for this run via
+# $GITHUB_TOKEN (used by _gh_api further down) — never written to disk.
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+    info "Using GITHUB_TOKEN already set in environment"
+else
+    printf "  ${BOLD}${YELLOW}🔑  GitHub API token (optional)${RESET}\n"
+    printf "  ${DIM}Raises the api.github.com rate limit from 60/hr to 5000/hr for this run.${RESET}\n"
+    printf "  ${DIM}Used only in-memory — never written to disk. Press Enter to skip.${RESET}\n\n"
+    printf "    Token (input hidden): "
+    GITHUB_TOKEN_INPUT=""
+    read -rs GITHUB_TOKEN_INPUT || true
+    printf "\n\n"
+    if [ -n "$GITHUB_TOKEN_INPUT" ]; then
+        export GITHUB_TOKEN="$GITHUB_TOKEN_INPUT"
+        ok "GitHub token set for this session (in-memory only)"
+    else
+        info "No GitHub token provided — using unauthenticated rate limit (60/hr)"
+    fi
+    unset GITHUB_TOKEN_INPUT
+fi
+
 printf "  ${DIM}Log file: %s${RESET}\n\n" "$LOG"
 
 # =============================================================================
@@ -411,16 +463,19 @@ else
 
     if [ -n "$OBS_ARCH" ]; then
         info "Fetching latest Obsidian release info..."
-        OBS_DEB_URL=$(curl -s https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest \
-            | jq -r ".assets[] | select(.name | endswith(\"_${OBS_ARCH}.deb\")) | .browser_download_url" \
-            | head -1)
+        OBS_DEB_URL=""
+        if OBS_JSON=$(_gh_api "https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest"); then
+            OBS_DEB_URL=$(printf '%s' "$OBS_JSON" \
+                | jq -r ".assets[] | select(.name | endswith(\"_${OBS_ARCH}.deb\")) | .browser_download_url" \
+                | head -1)
+        fi
 
         if [ -z "$OBS_DEB_URL" ]; then
             warn "Could not resolve Obsidian .deb URL for $OBS_ARCH — skipping"
         else
             OBS_VERSION=$(basename "$OBS_DEB_URL" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
             spin "download Obsidian ${OBS_VERSION}" \
-                wget -q "$OBS_DEB_URL" -O /tmp/obsidian.deb
+                wget -q --timeout=30 --tries=3 --waitretry=3 "$OBS_DEB_URL" -O /tmp/obsidian.deb
             spin "install Obsidian ${OBS_VERSION}" \
                 sudo apt-get install -y -qq /tmp/obsidian.deb
             rm -f /tmp/obsidian.deb
@@ -524,7 +579,7 @@ else
     section "Oh My Zsh & Plugins (host)" "🐚"
     if [ ! -d "$HOME/.oh-my-zsh" ]; then
         spin "install oh-my-zsh" \
-            bash -c 'RUNZSH=no CHSH=no sh -c "$(wget -qO- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
+            bash -c 'RUNZSH=no CHSH=no sh -c "$(wget --timeout=30 --tries=3 --waitretry=3 -qO- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
     else
         info "oh-my-zsh already installed — skipping"
     fi
@@ -1004,7 +1059,7 @@ else
 
             if [ ! -f "$EXEGOL_RES/bin/$JDK_TARBALL" ]; then
                 spin "download Eclipse Temurin JDK ${JDK_FEATURE}" \
-                    wget -q "$JDK_URL" -O "$EXEGOL_RES/bin/$JDK_TARBALL"
+                    wget -q --timeout=30 --tries=3 --waitretry=3 "$JDK_URL" -O "$EXEGOL_RES/bin/$JDK_TARBALL"
             else
                 info "JDK tarball already present — skipping"
             fi
@@ -1093,8 +1148,12 @@ if is_done "fonts"; then
 else
     section "Nerd Fonts" "🔤"
     mkdir -p "$HOME/.local/share/fonts/nerd-fonts"
-    NF_VERSION=$(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest \
-        | jq -r '.tag_name // "v3.4.0"')
+    NF_VERSION="v3.4.0"
+    if NF_JSON=$(_gh_api "https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest"); then
+        NF_VERSION=$(printf '%s' "$NF_JSON" | jq -r '.tag_name // "v3.4.0"')
+    else
+        warn "Falling back to pinned Nerd Fonts version ${NF_VERSION}"
+    fi
     info "Nerd Fonts release: $NF_VERSION"
     for _nf_font in Iosevka CommitMono UbuntuMono; do
         if [ -d "$HOME/.local/share/fonts/nerd-fonts/${_nf_font}" ]; then
@@ -1102,7 +1161,8 @@ else
             continue
         fi
         spin "download ${_nf_font}" \
-            wget -q "https://github.com/ryanoasis/nerd-fonts/releases/download/${NF_VERSION}/${_nf_font}.zip" \
+            wget -q --timeout=30 --tries=3 --waitretry=3 \
+                 "https://github.com/ryanoasis/nerd-fonts/releases/download/${NF_VERSION}/${_nf_font}.zip" \
                  -O "/tmp/${_nf_font}.zip"
         spin "unzip ${_nf_font}" \
             unzip -qo "/tmp/${_nf_font}.zip" -d "$HOME/.local/share/fonts/nerd-fonts/${_nf_font}"
@@ -1129,8 +1189,10 @@ else
 
     if ! command -v sops &>/dev/null; then
         info "Fetching latest sops release..."
-        SOPS_VERSION=$(curl -s https://api.github.com/repos/getsops/sops/releases/latest \
-            | jq -r '.tag_name // empty')
+        SOPS_VERSION=""
+        if SOPS_JSON=$(_gh_api "https://api.github.com/repos/getsops/sops/releases/latest"); then
+            SOPS_VERSION=$(printf '%s' "$SOPS_JSON" | jq -r '.tag_name // empty')
+        fi
         _sops_arch=""
         case "$(uname -m)" in
             x86_64|amd64)  _sops_arch="amd64" ;;
@@ -1139,7 +1201,8 @@ else
         esac
         if [ -n "$SOPS_VERSION" ] && [ -n "$_sops_arch" ]; then
             spin "download sops ${SOPS_VERSION} (${_sops_arch})" \
-                wget -q "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.${_sops_arch}" \
+                wget -q --timeout=30 --tries=3 --waitretry=3 \
+                     "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.${_sops_arch}" \
                      -O /tmp/sops-bin
             sudo install -m 755 /tmp/sops-bin /usr/local/bin/sops
             rm -f /tmp/sops-bin
@@ -1603,15 +1666,20 @@ else
     mkdir -p "$LIGOLO_DIR/proxy" "$LIGOLO_DIR/agent"
 
     info "Resolving latest ligolo-ng release..."
-    LIGOLO_JSON=$(curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest)
-    LIGOLO_VERSION=$(printf '%s' "$LIGOLO_JSON" | jq -r '.tag_name // empty')
+    LIGOLO_JSON=""
+    if LIGOLO_JSON=$(_gh_api "https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest"); then
+        LIGOLO_VERSION=$(printf '%s' "$LIGOLO_JSON" | jq -r '.tag_name // empty')
+    else
+        LIGOLO_VERSION=""
+    fi
 
     if [ -z "$LIGOLO_VERSION" ]; then
-        warn "Could not resolve latest ligolo-ng release — skipping"
+        warn "Could not resolve latest ligolo-ng release — will retry on next run (not checkpointed)"
     else
         info "ligolo-ng release: $LIGOLO_VERSION"
 
         LIGOLO_COUNT=0
+        LIGOLO_FAILED=0
         while IFS=$'\t' read -r asset_name asset_url; do
             [ -z "$asset_name" ] && continue
             case "$asset_name" in
@@ -1630,16 +1698,26 @@ else
                 continue
             fi
 
-            spin "download $asset_name" \
-                wget -q "$asset_url" -O "/tmp/$asset_name"
-            case "$asset_name" in
-                *.tar.gz) tar -xzf "/tmp/$asset_name" -C "$dest" ;;
-                *.zip)    unzip -qo "/tmp/$asset_name" -d "$dest" ;;
-            esac
-            rm -f "/tmp/$asset_name"
-            chmod +x "$dest"/agent "$dest"/proxy 2>/dev/null || true
-            echo "$LIGOLO_VERSION" > "$dest/.version"
-            LIGOLO_COUNT=$(( LIGOLO_COUNT + 1 ))
+            # A single stalled/broken asset must not take the whole run down —
+            # `if spin ...` keeps the failure inside this iteration (spin
+            # already prints the ✘ and captured error output) instead of
+            # exiting the script under set -e; we just skip that one platform
+            # and keep going.
+            if spin "download $asset_name" \
+                wget -q --timeout=30 --tries=3 --waitretry=3 "$asset_url" -O "/tmp/$asset_name"
+            then
+                case "$asset_name" in
+                    *.tar.gz) tar -xzf "/tmp/$asset_name" -C "$dest" ;;
+                    *.zip)    unzip -qo "/tmp/$asset_name" -d "$dest" ;;
+                esac
+                rm -f "/tmp/$asset_name"
+                chmod +x "$dest"/agent "$dest"/proxy 2>/dev/null || true
+                echo "$LIGOLO_VERSION" > "$dest/.version"
+                LIGOLO_COUNT=$(( LIGOLO_COUNT + 1 ))
+            else
+                rm -f "/tmp/$asset_name"
+                LIGOLO_FAILED=$(( LIGOLO_FAILED + 1 ))
+            fi
         done < <(printf '%s' "$LIGOLO_JSON" \
             | jq -r '.assets[] | select(.name | test("^ligolo-ng_(agent|proxy)_")) | "\(.name)\t\(.browser_download_url)"')
 
@@ -1648,9 +1726,13 @@ else
         else
             info "ligolo-ng ${LIGOLO_VERSION} — all platform binaries already up to date"
         fi
-    fi
 
-    mark_done "ligolo_ng"
+        if [ "$LIGOLO_FAILED" -gt 0 ]; then
+            warn "${LIGOLO_FAILED} ligolo-ng asset(s) failed to download — re-run the script to retry just those (not checkpointed)"
+        else
+            mark_done "ligolo_ng"
+        fi
+    fi
 fi
 
 # =============================================================================
