@@ -47,11 +47,12 @@ BG_BLUE="${ESC}[44m"
 # ──────────────────────────────────────────────────────────────────────────────
 #  Step tracking & log file
 # ──────────────────────────────────────────────────────────────────────────────
-TOTAL_STEPS=25
+TOTAL_STEPS=26
 CURRENT_STEP=0
 SCRIPT_START=$(date +%s)
 
 LOG="$HOME/exegol-setup-$(date +%Y%m%d-%H%M%S).log"
+find "$HOME" -maxdepth 1 -name 'exegol-setup-*.log' -mtime +30 -delete 2>/dev/null || true
 touch "$LOG"
 log() { printf "[%s] %s\n" "$(date +%H:%M:%S)" "$*" >> "$LOG"; }
 
@@ -62,6 +63,67 @@ CHECKPOINT_DIR="$HOME/.exegol_setup_checkpoints"
 mkdir -p "$CHECKPOINT_DIR"
 is_done()   { [ -f "$CHECKPOINT_DIR/$1" ]; }
 mark_done() { touch "$CHECKPOINT_DIR/$1"; log "CHECKPOINT: $1 complete"; }
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  CLI arguments — --only / --force / --list / --help
+#  ALL_CHECKPOINTS must stay in source order and in sync with every
+#  mark_done "<name>" call in this file. Regenerate with:
+#    grep -oP 'mark_done "\K[^"]+' exegol-setup.sh | awk '!seen[$0]++'
+# ──────────────────────────────────────────────────────────────────────────────
+ALL_CHECKPOINTS=(
+    obsidian docker exegol dotfiles ohmyzsh doom dotfile_links
+    myresources_scaffold myresources_configs myresources_pkgs load_user_setup
+    wordlists burp_pro fonts ssh_secrets doom_sync vmware hacktricks_revshells
+    nessus gcloud pyenv prowler claude_code sharpcollection ligolo_ng
+)
+
+FORCE=0
+ONLY=""
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [--only=<checkpoint>] [--force] [--list] [-h|--help]
+
+  --only=<name>   Run only the named section; every other checkpoint is
+                   treated as already-done for this run.
+  --force         Clear ALL checkpoints before running (full re-run).
+                   Combined with --only, clears just that checkpoint.
+  --list          Print valid checkpoint names and exit.
+  -h, --help      Show this help and exit.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force) FORCE=1; shift ;;
+        --only=*) ONLY="${1#--only=}"; shift ;;
+        --only) ONLY="${2:?--only requires a value}"; shift 2 ;;
+        --list) printf '%s\n' "${ALL_CHECKPOINTS[@]}"; exit 0 ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
+    esac
+done
+
+if [[ -n "$ONLY" ]] && ! printf '%s\n' "${ALL_CHECKPOINTS[@]}" | grep -qx -- "$ONLY"; then
+    echo "Unknown checkpoint: '$ONLY'" >&2
+    printf '  %s\n' "${ALL_CHECKPOINTS[@]}" >&2
+    exit 1
+fi
+
+if (( FORCE )); then
+    if [[ -n "$ONLY" ]]; then
+        rm -f "$CHECKPOINT_DIR/$ONLY"
+    else
+        rm -f "$CHECKPOINT_DIR"/*
+    fi
+fi
+
+if [[ -n "$ONLY" ]]; then
+    for cp in "${ALL_CHECKPOINTS[@]}"; do
+        [[ "$cp" == "$ONLY" ]] && continue
+        : > "$CHECKPOINT_DIR/$cp"
+    done
+fi
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Tunables
@@ -88,10 +150,66 @@ PYENV_PY=3.12
 # To pin to a specific LTS, change JDK_FEATURE here.
 JDK_FEATURE=21   # current LTS; supported until 2029
 
+# ── Network / verification helpers ────────────────────────────────────────────
+# Mirrors the --timeout=30 --tries=3 --waitretry=3 convention already used on
+# every wget call in this script, so a stalled connection can't hang curl
+# indefinitely either. CURL_TIMEOUT_FLAGS is the string form, for the couple
+# of call sites inside a single-quoted `bash -c '...'` where a parent-shell
+# array can't cross the process boundary.
+CURL_TIMEOUT_ARGS=(--connect-timeout 10 --max-time 120 --retry 3 --retry-delay 3)
+CURL_TIMEOUT_FLAGS="--connect-timeout 10 --max-time 120 --retry 3 --retry-delay 3"
+
+# _verify_checksum <file> <algo:sha256|sha512> <expected_hex>
+_verify_checksum() {
+    local file="$1" algo="$2" expected="$3" actual
+    case "$algo" in
+        sha256) actual="$(sha256sum "$file" | awk '{print $1}')" ;;
+        sha512) actual="$(sha512sum "$file" | awk '{print $1}')" ;;
+        *) echo "_verify_checksum: unsupported algo $algo" >&2; return 2 ;;
+    esac
+    if [ "${actual,,}" != "${expected,,}" ]; then
+        echo "Checksum mismatch for $file: expected $expected, got $actual" >&2
+        return 1
+    fi
+}
+
+# _git_clone_retry <clone args...> — timeout guards a total hang (incl. a
+# stuck DNS resolve or credential prompt, which never transfers a byte so
+# lowSpeedLimit alone wouldn't catch it); http.lowSpeedLimit/Time guards a
+# connected-but-crawling transfer. Together they're stronger than either alone.
+_git_clone_retry() {
+    timeout 120 git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=30 clone "$@"
+}
+
+# _git_update_or_clone <repo-url> <dest-dir> [extra clone args...]
+# Read-only vendored checkouts have nothing local to preserve, so a plain
+# fetch+reset-hard is the reliable "just get me the latest state" pattern —
+# same idiom as SharpCollection's update path.
+_git_update_or_clone() {
+    local repo="$1" dest="$2"; shift 2
+    if [ -d "$dest/.git" ]; then
+        git -C "$dest" fetch --depth 1 origin && git -C "$dest" reset --hard origin/HEAD
+    else
+        _git_clone_retry "$@" "$repo" "$dest"
+    fi
+}
+
+# _record_version <tool> <version> — dedup KEY=VALUE lines in
+# ~/Tools/INSTALLED_VERSIONS.txt so a rerun overwrites the stale entry
+# instead of accumulating duplicates.
+_record_version() {
+    local file="$HOME/Tools/INSTALLED_VERSIONS.txt" tool="$1" ver="$2"
+    mkdir -p "$HOME/Tools"
+    touch "$file"
+    grep -v "^${tool}=" "$file" > "${file}.tmp" 2>/dev/null || true
+    mv "${file}.tmp" "$file"
+    echo "${tool}=${ver}" >> "$file"
+}
+
 _temurin_url() {
     local arch="$1"
-    curl -s "https://api.adoptium.net/v3/assets/latest/${JDK_FEATURE}/hotspot?os=linux&architecture=${arch}&image_type=jdk&vendor=eclipse" \
-        | jq -r '.[0].binary.package.link // empty'
+    curl -s "${CURL_TIMEOUT_ARGS[@]}" "https://api.adoptium.net/v3/assets/latest/${JDK_FEATURE}/hotspot?os=linux&architecture=${arch}&image_type=jdk&vendor=eclipse" \
+        | jq -r '[.[0].binary.package.link, .[0].binary.package.checksum] | @tsv'
 }
 
 # GitHub REST calls are capped at 60/hr per IP when unauthenticated — easy to
@@ -102,9 +220,9 @@ _temurin_url() {
 # retried on the next run instead of silently no-op'ing.
 _gh_api() {
     local url="$1" body status
-    local -a curl_args=(-s -w '\n%{http_code}' "$url")
+    local -a curl_args=("${CURL_TIMEOUT_ARGS[@]}" -s -w '\n%{http_code}' "$url")
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-        curl_args=(-s -w '\n%{http_code}' -H "Authorization: Bearer ${GITHUB_TOKEN}" "$url")
+        curl_args=("${CURL_TIMEOUT_ARGS[@]}" -s -w '\n%{http_code}' -H "Authorization: Bearer ${GITHUB_TOKEN}" "$url")
     fi
     local resp
     resp=$(curl "${curl_args[@]}")
@@ -144,13 +262,21 @@ EOF
 
 _progress_bar() {
     local step=$1 total=$2 width=40
-    local filled=$(( step * width / total ))
+    # Clamp only the bar/percentage math so a future miscount (TOTAL_STEPS
+    # not bumped when a section is added/removed) degrades to a capped 100%
+    # bar instead of overflowing past it — but keep the raw step in the
+    # "step N/M" label so a mismatch stays visible rather than hidden.
+    local bar_step=$step
+    if [ "$bar_step" -gt "$total" ]; then
+        bar_step=$total
+    fi
+    local filled=$(( bar_step * width / total ))
     local empty=$(( width - filled ))
     local bar="" i=0
     while [ $i -lt $filled ]; do bar="${bar}█"; i=$(( i + 1 )); done
     i=0
     while [ $i -lt $empty ];  do bar="${bar}░"; i=$(( i + 1 )); done
-    local pct=$(( step * 100 / total ))
+    local pct=$(( bar_step * 100 / total ))
     printf "  ${DIM}[${RESET}${CYAN}${bar}${RESET}${DIM}]${RESET} ${BOLD}%3d%%${RESET}  ${DIM}step %d/%d${RESET}" \
         "$pct" "$step" "$total"
 }
@@ -223,6 +349,15 @@ spin_soft() {
     spin "$label" "$@" || warn "$label failed (non-fatal, continuing)"
 }
 
+# Fatal-vs-soft-fail policy (intentional, not inconsistent): a bare `spin`
+# call is used for single required downloads/steps where failure means the
+# section didn't do its job (e.g. the JDK, Obsidian, or sops downloads) — the
+# whole run should stop rather than continue on a broken foundation.
+# `spin_soft`, or a per-item `if spin ...; then ... else ... fi` with its own
+# bookkeeping (see ligolo-ng, SharpCollection), is used for multi-item loops
+# where one bad item (one platform binary, one plugin) shouldn't block the
+# rest of an otherwise-independent set.
+
 safe_link_user() {
     local src="$1" dest="$2"
     if [ -e "$dest" ] || [ -L "$dest" ]; then rm -f "$dest"; fi
@@ -290,11 +425,21 @@ deploy_ssh_keys() {
     mkdir -p "$HOME/.ssh"
     chmod 700 "$HOME/.ssh"
 
-    python3 - "$HOME/.ssh" "$decrypted" <<'PYEOF'
+    # Write the decrypted YAML to a private scratch file rather than passing
+    # it as a python argv — process argv is visible to any local user via
+    # `ps`/`/proc/<pid>/cmdline` for the process's lifetime, which would leak
+    # private key material. mktemp creates the file 0600 by default.
+    local secrets_tmp
+    secrets_tmp="$(mktemp)"
+    trap 'rm -f "$secrets_tmp"' RETURN
+    printf '%s' "$decrypted" > "$secrets_tmp"
+
+    python3 - "$HOME/.ssh" "$secrets_tmp" <<'PYEOF'
 import sys, os, yaml
 
 ssh_dir  = sys.argv[1]
-secrets  = yaml.safe_load(sys.argv[2])
+with open(sys.argv[2]) as f:
+    secrets = yaml.safe_load(f)
 keys     = secrets.get('ssh_keys', {})
 
 key_map = {
@@ -476,10 +621,29 @@ else
             OBS_VERSION=$(basename "$OBS_DEB_URL" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
             spin "download Obsidian ${OBS_VERSION}" \
                 wget -q --timeout=30 --tries=3 --waitretry=3 "$OBS_DEB_URL" -O /tmp/obsidian.deb
+
+            # electron-builder's autoupdate manifest carries a sha512 for the
+            # Linux asset, but isn't guaranteed to exist for every release —
+            # this is a root-privileged install (highest-severity site of the
+            # five), so verify when we can, warn loudly and proceed when we can't.
+            OBS_MANIFEST_URL="$(dirname "$OBS_DEB_URL")/latest-linux.yml"
+            if wget -q --timeout=30 --tries=3 --waitretry=3 "$OBS_MANIFEST_URL" -O /tmp/obsidian-latest-linux.yml 2>>"$LOG"; then
+                _obs_sha512="$(awk '/^sha512:/{print $2}' /tmp/obsidian-latest-linux.yml)"
+                if [ -n "$_obs_sha512" ]; then
+                    spin "verify Obsidian checksum" _verify_checksum /tmp/obsidian.deb sha512 "$_obs_sha512"
+                else
+                    warn "No sha512 field in Obsidian's update manifest — installing unverified .deb as root"
+                fi
+                rm -f /tmp/obsidian-latest-linux.yml
+            else
+                warn "No checksum manifest found for Obsidian ${OBS_VERSION} — installing unverified .deb as root"
+            fi
+
             spin "install Obsidian ${OBS_VERSION}" \
                 sudo apt-get install -y -qq /tmp/obsidian.deb
             rm -f /tmp/obsidian.deb
             ok "Obsidian ${OBS_VERSION} installed"
+            _record_version "obsidian" "$OBS_VERSION"
         fi
         mark_done "obsidian"
     fi
@@ -498,7 +662,7 @@ else
     section "Docker Engine" "🐳"
     if ! command -v docker >/dev/null 2>&1; then
         spin "add docker GPG key" \
-            bash -c 'curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+            bash -c 'curl -fsSL --connect-timeout 10 --max-time 120 --retry 3 --retry-delay 3 https://download.docker.com/linux/ubuntu/gpg \
                 | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg'
         spin "add docker apt source" \
             bash -c 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
@@ -516,6 +680,13 @@ fi
 
 # =============================================================================
 # 3. EXEGOL — pipx install per https://docs.exegol.com/first-install
+#    Update policy: apt/pipx-managed tools (Docker above, Exegol here) are
+#    installed once and rely on `apt upgrade` / re-running with --force for
+#    updates — unlike the git-vendored repos below (oh-my-zsh plugins, TPM,
+#    Doom Emacs, HackTricks, etc.), which fetch+reset to latest whenever this
+#    section is deliberately re-run. The one exception: `pipx upgrade exegol`
+#    itself runs unconditionally every invocation further down, since it's a
+#    fast no-op when already current.
 # =============================================================================
 if is_done "exegol"; then
     skip_section "Exegol Wrapper" "🧪"
@@ -527,8 +698,7 @@ else
     if ! command -v exegol >/dev/null 2>&1; then
         spin "install exegol via pipx"  pipx install exegol
     else
-        info "exegol already installed — running upgrade instead"
-        spin_soft "pipx upgrade exegol"  pipx upgrade exegol
+        info "exegol already installed"
     fi
 
     # Argcomplete for zsh AND bash so tab-completion works on either shell.
@@ -555,6 +725,12 @@ else
     mark_done "exegol"
 fi
 
+# Runs on every invocation (not gated behind is_done "exegol" above, which
+# only executes once) — pipx upgrade is a fast no-op when already current.
+if command -v pipx >/dev/null 2>&1 && command -v exegol >/dev/null 2>&1; then
+    spin_soft "pipx upgrade exegol"  pipx upgrade exegol
+fi
+
 # =============================================================================
 # 4. DOTFILES — clone your kaliconfigs so the HOST shell feels right
 # =============================================================================
@@ -563,7 +739,7 @@ if is_done "dotfiles"; then
 else
     section "Dotfiles (kaliconfigs)" "📁"
     if [ ! -d "$DOTFILES_DIR" ]; then
-        spin "clone kaliconfigs"  git clone "$DOTFILES_REPO" "$DOTFILES_DIR"
+        spin "clone kaliconfigs"  _git_clone_retry "$DOTFILES_REPO" "$DOTFILES_DIR"
     else
         info "dotfiles already cloned — skipping"
     fi
@@ -589,9 +765,9 @@ else
     _zsh_plugin() {
         local name="$1" url="$2" dest="$ZSH_CUSTOM/plugins/$1"
         if [ ! -d "$dest" ]; then
-            spin "plugin: $name"  git clone --depth 1 "$url" "$dest"
+            spin "plugin: $name"  _git_update_or_clone "$url" "$dest" --depth 1
         else
-            info "plugin $name already exists — skipping"
+            spin_soft "update plugin: $name"  _git_update_or_clone "$url" "$dest" --depth 1
         fi
     }
     _zsh_plugin zsh-syntax-highlighting   https://github.com/zsh-users/zsh-syntax-highlighting.git
@@ -601,9 +777,10 @@ else
 
     if [ ! -d "$HOME/.tmux/plugins/tpm" ]; then
         spin "install tmux plugin manager" \
-            git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+            _git_update_or_clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
     else
-        info "tpm already installed — skipping"
+        spin_soft "update tmux plugin manager" \
+            _git_update_or_clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
     fi
 
     # Ubuntu does not ship zsh as default
@@ -626,9 +803,10 @@ else
     section "Doom Emacs" "☠️"
     if [ ! -d "$HOME/.config/emacs" ]; then
         spin "clone doom emacs" \
-            git clone --depth 1 https://github.com/doomemacs/doomemacs "$HOME/.config/emacs"
+            _git_update_or_clone https://github.com/doomemacs/doomemacs "$HOME/.config/emacs" --depth 1
     else
-        info "doom emacs already cloned — skipping"
+        spin_soft "update doom emacs" \
+            _git_update_or_clone https://github.com/doomemacs/doomemacs "$HOME/.config/emacs" --depth 1
     fi
     printf "\n    ${DIM}Running doom install — this can take several minutes...${RESET}\n\n"
     "$HOME/.config/emacs/bin/doom" install
@@ -1007,10 +1185,12 @@ else
 
     if [ ! -d "$EXEGOL_RES/wordlists/Hacking-APIs" ]; then
         spin "clone Hacking-APIs wordlist" \
-            git clone --depth 1 https://github.com/hAPI-hacker/Hacking-APIs.git \
-                "$EXEGOL_RES/wordlists/Hacking-APIs"
+            _git_update_or_clone https://github.com/hAPI-hacker/Hacking-APIs.git \
+                "$EXEGOL_RES/wordlists/Hacking-APIs" --depth 1
     else
-        info "Hacking-APIs already present — skipping"
+        spin_soft "update Hacking-APIs wordlist" \
+            _git_update_or_clone https://github.com/hAPI-hacker/Hacking-APIs.git \
+                "$EXEGOL_RES/wordlists/Hacking-APIs" --depth 1
     fi
 
     if [ ! -L "$WORDLISTS_DIR/Hacking-APIs" ]; then
@@ -1032,15 +1212,16 @@ else
 
     ARCH="$(uname -m)"
     JDK_URL=""
+    JDK_SHA256=""
     JDK_TARBALL=""
     case "$ARCH" in
         x86_64|amd64)
             info "Resolving latest Eclipse Temurin JDK ${JDK_FEATURE} (x64)..."
-            JDK_URL=$(_temurin_url x64)
+            read -r JDK_URL JDK_SHA256 <<< "$(_temurin_url x64)"
             ;;
         aarch64|arm64)
             info "Resolving latest Eclipse Temurin JDK ${JDK_FEATURE} (aarch64)..."
-            JDK_URL=$(_temurin_url aarch64)
+            read -r JDK_URL JDK_SHA256 <<< "$(_temurin_url aarch64)"
             ;;
         *)
             warn "Unknown arch '$ARCH' — skipping Burp Pro bootstrap."
@@ -1060,6 +1241,12 @@ else
             if [ ! -f "$EXEGOL_RES/bin/$JDK_TARBALL" ]; then
                 spin "download Eclipse Temurin JDK ${JDK_FEATURE}" \
                     wget -q --timeout=30 --tries=3 --waitretry=3 "$JDK_URL" -O "$EXEGOL_RES/bin/$JDK_TARBALL"
+                if [ -n "$JDK_SHA256" ]; then
+                    spin "verify JDK checksum" \
+                        _verify_checksum "$EXEGOL_RES/bin/$JDK_TARBALL" sha256 "$JDK_SHA256"
+                else
+                    warn "No checksum returned by Adoptium API for ${JDK_TARBALL} — proceeding unverified"
+                fi
             else
                 info "JDK tarball already present — skipping"
             fi
@@ -1071,6 +1258,8 @@ else
                 warn "Could not determine JDK directory name from tarball — skipping java-burp-setup.sh generation"
                 mark_done "burp_pro"
                 JDK_DIR=""
+            else
+                _record_version "temurin-jdk" "$JDK_DIR"
             fi
         fi
     fi
@@ -1155,6 +1344,11 @@ else
         warn "Falling back to pinned Nerd Fonts version ${NF_VERSION}"
     fi
     info "Nerd Fonts release: $NF_VERSION"
+    if [ ! -f "/tmp/nf-sha256.txt" ]; then
+        wget -q --timeout=30 --tries=3 --waitretry=3 \
+            "https://github.com/ryanoasis/nerd-fonts/releases/download/${NF_VERSION}/SHA-256.txt" \
+            -O /tmp/nf-sha256.txt 2>>"$LOG" || true
+    fi
     for _nf_font in Iosevka CommitMono UbuntuMono; do
         if [ -d "$HOME/.local/share/fonts/nerd-fonts/${_nf_font}" ]; then
             info "${_nf_font} already present — skipping"
@@ -1164,11 +1358,23 @@ else
             wget -q --timeout=30 --tries=3 --waitretry=3 \
                  "https://github.com/ryanoasis/nerd-fonts/releases/download/${NF_VERSION}/${_nf_font}.zip" \
                  -O "/tmp/${_nf_font}.zip"
+        if [ -s /tmp/nf-sha256.txt ]; then
+            _nf_expected="$(awk -v f="${_nf_font}.zip" '$2==f || $2=="*"f {print $1}' /tmp/nf-sha256.txt)"
+            if [ -n "$_nf_expected" ]; then
+                spin "verify ${_nf_font} checksum" _verify_checksum "/tmp/${_nf_font}.zip" sha256 "$_nf_expected"
+            else
+                warn "No checksum entry for ${_nf_font}.zip — proceeding unverified"
+            fi
+        else
+            warn "No checksum manifest for Nerd Fonts ${NF_VERSION} — proceeding unverified"
+        fi
         spin "unzip ${_nf_font}" \
             unzip -qo "/tmp/${_nf_font}.zip" -d "$HOME/.local/share/fonts/nerd-fonts/${_nf_font}"
         rm -f "/tmp/${_nf_font}.zip"
     done
+    rm -f /tmp/nf-sha256.txt
     spin_soft "refresh font cache"  fc-cache -f
+    _record_version "nerd-fonts" "$NF_VERSION"
     mark_done "fonts"
 fi
 
@@ -1204,9 +1410,26 @@ else
                 wget -q --timeout=30 --tries=3 --waitretry=3 \
                      "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.${_sops_arch}" \
                      -O /tmp/sops-bin
+
+            _sops_checksums="/tmp/sops-checksums.txt"
+            if wget -q --timeout=30 --tries=3 --waitretry=3 \
+                "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.checksums.txt" \
+                -O "$_sops_checksums" 2>>"$LOG"; then
+                _sops_expected="$(awk -v f="sops-${SOPS_VERSION}.linux.${_sops_arch}" '$2==f || $2=="*"f {print $1}' "$_sops_checksums")"
+                if [ -n "$_sops_expected" ]; then
+                    spin "verify sops checksum" _verify_checksum /tmp/sops-bin sha256 "$_sops_expected"
+                else
+                    warn "sops checksum entry not found in manifest — proceeding unverified"
+                fi
+            else
+                warn "Could not fetch sops checksums manifest — proceeding unverified"
+            fi
+            rm -f "$_sops_checksums"
+
             sudo install -m 755 /tmp/sops-bin /usr/local/bin/sops
             rm -f /tmp/sops-bin
             ok "sops installed → /usr/local/bin/sops"
+            _record_version "sops" "$SOPS_VERSION"
         else
             warn "Could not resolve sops download — skipping (install manually from https://github.com/getsops/sops/releases)"
         fi
@@ -1299,15 +1522,15 @@ else
     mkdir -p "$HOME/Tools"
 
     if [ ! -d "$HOME/Tools/hacktricks" ]; then
-        spin "clone HackTricks wiki"   git clone https://github.com/HackTricks-wiki/hacktricks "$HOME/Tools/hacktricks"
+        spin "clone HackTricks wiki"   _git_update_or_clone https://github.com/HackTricks-wiki/hacktricks "$HOME/Tools/hacktricks"
     else
-        info "HackTricks already cloned — skipping"
+        spin_soft "update HackTricks wiki"  _git_update_or_clone https://github.com/HackTricks-wiki/hacktricks "$HOME/Tools/hacktricks"
     fi
 
     if [ ! -d "$HOME/Tools/reverse-shell-generator" ]; then
-        spin "clone revshells"         git clone https://github.com/0dayCTF/reverse-shell-generator.git "$HOME/Tools/reverse-shell-generator"
+        spin "clone revshells"         _git_update_or_clone https://github.com/0dayCTF/reverse-shell-generator.git "$HOME/Tools/reverse-shell-generator"
     else
-        info "revshells already cloned — skipping"
+        spin_soft "update revshells"   _git_update_or_clone https://github.com/0dayCTF/reverse-shell-generator.git "$HOME/Tools/reverse-shell-generator"
     fi
     if ! sudo docker image inspect reverse_shell_generator >/dev/null 2>&1; then
         spin_soft "build revshells image"  sudo docker build -t reverse_shell_generator "$HOME/Tools/reverse-shell-generator"
@@ -1416,6 +1639,11 @@ EOF
     ok "nessus-compose.yml created → ~/Tools/nessus-compose.yml"
 
     # ── .env template (skip if already populated) ─────────────────────────────
+    # Deliberately kept as a local plaintext file rather than routed through
+    # the sops/age vault (unlike the SSH keys): it's host-local, already
+    # chmod 600, and never fleet-distributed the way the SSH keys are —
+    # folding it into the vault would raise the bootstrap bar for no real
+    # security gain on an already-permission-locked single-host file.
     if [ ! -f "$HOME/Tools/.env" ]; then
         cat > "$HOME/Tools/.env" << 'EOF'
 # Nessus Professional credentials
@@ -1428,6 +1656,11 @@ EOF
         ok ".env template created → ~/Tools/.env  (chmod 600)"
     else
         info ".env already exists — skipping"
+    fi
+
+    if [ ! -f "$HOME/Tools/.gitignore" ] || ! grep -qx '\.env' "$HOME/Tools/.gitignore" 2>/dev/null; then
+        echo '.env' >> "$HOME/Tools/.gitignore"
+        ok "ensured .env is gitignored → ~/Tools/.gitignore"
     fi
 
     # ── Launcher script ───────────────────────────────────────────────────────
@@ -1479,7 +1712,7 @@ else
 
         # Keyring is rewritten each run — --yes stops gpg prompting on re-run.
         spin "add google cloud GPG key" \
-            bash -c 'curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+            bash -c 'curl -fsSL --connect-timeout 10 --max-time 120 --retry 3 --retry-delay 3 https://packages.cloud.google.com/apt/doc/apt-key.gpg \
                 | sudo gpg --dearmor --yes -o /usr/share/keyrings/cloud.google.gpg'
 
         # tee (not tee -a) so re-runs cannot stack duplicate source lines.
@@ -1514,7 +1747,7 @@ else
             libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
 
     if [ ! -d "$PYENV_ROOT_DIR" ]; then
-        spin "install pyenv"  bash -c 'curl -fsSL https://pyenv.run | bash'
+        spin "install pyenv"  bash -c "curl -fsSL $CURL_TIMEOUT_FLAGS https://pyenv.run | bash"
     else
         info "pyenv already present — skipping installer"
     fi
@@ -1606,7 +1839,7 @@ if is_done "claude_code"; then
     skip_section "Claude Code" "🤖"
 else
     section "Claude Code" "🤖"
-    spin_soft "install Claude Code" bash -c 'curl -fsSL https://claude.ai/install.sh | bash'
+    spin_soft "install Claude Code" bash -c 'curl -fsSL --connect-timeout 10 --max-time 120 --retry 3 --retry-delay 3 https://claude.ai/install.sh | bash'
 
     # The installer normally appends PATH to ~/.zshrc; add a fallback in case
     # the file is a symlink that the installer skipped or wrote elsewhere.
@@ -1635,7 +1868,7 @@ else
 
     if [ ! -d "$SHARPCOLLECTION_DIR/.git" ]; then
         spin "clone SharpCollection (sparse: ${SHARPCOLLECTION_SUBDIR})" \
-            git clone --filter=blob:none --no-checkout --depth 1 \
+            _git_clone_retry --filter=blob:none --no-checkout --depth 1 \
                 https://github.com/Flangvik/SharpCollection.git "$SHARPCOLLECTION_DIR"
         (
             cd "$SHARPCOLLECTION_DIR"
@@ -1644,12 +1877,22 @@ else
             git checkout master
         ) >>"$LOG" 2>&1
         ok "SharpCollection (${SHARPCOLLECTION_SUBDIR}) cloned → $SHARPCOLLECTION_DIR"
+        mark_done "sharpcollection"
     else
-        info "SharpCollection already present — pulling latest"
-        spin_soft "update SharpCollection"  git -C "$SHARPCOLLECTION_DIR" pull --depth 1
+        info "SharpCollection already present — fetching latest"
+        # fetch+reset-hard (not `pull`) — this is a read-only sparse checkout
+        # with nothing local to preserve, and avoids `pull`'s shallow-history
+        # merge-semantics inconsistency. mark_done is withheld on failure
+        # (mirrors ligolo-ng's discipline) so a failed update retries next run
+        # instead of being silently marked complete.
+        if spin "update SharpCollection" \
+            bash -c "git -C '$SHARPCOLLECTION_DIR' fetch --depth 1 origin master && git -C '$SHARPCOLLECTION_DIR' reset --hard origin/master"
+        then
+            mark_done "sharpcollection"
+        else
+            warn "SharpCollection update failed — will retry next run (not checkpointed)"
+        fi
     fi
-
-    mark_done "sharpcollection"
 fi
 
 # =============================================================================
@@ -1677,6 +1920,14 @@ else
         warn "Could not resolve latest ligolo-ng release — will retry on next run (not checkpointed)"
     else
         info "ligolo-ng release: $LIGOLO_VERSION"
+
+        # goreleaser publishes a checksums.txt per release (unversioned "v"
+        # prefix in the filename vs. the tag). Fetch once; per-asset lookups
+        # below fall back to warn-and-proceed if it's missing this release.
+        LIGOLO_CHECKSUMS="/tmp/ligolo-ng-checksums.txt"
+        wget -q --timeout=30 --tries=3 --waitretry=3 \
+            "https://github.com/nicocha30/ligolo-ng/releases/download/${LIGOLO_VERSION}/ligolo-ng_${LIGOLO_VERSION#v}_checksums.txt" \
+            -O "$LIGOLO_CHECKSUMS" 2>>"$LOG" || rm -f "$LIGOLO_CHECKSUMS"
 
         LIGOLO_COUNT=0
         LIGOLO_FAILED=0
@@ -1706,26 +1957,48 @@ else
             if spin "download $asset_name" \
                 wget -q --timeout=30 --tries=3 --waitretry=3 "$asset_url" -O "/tmp/$asset_name"
             then
-                case "$asset_name" in
-                    *.tar.gz) tar -xzf "/tmp/$asset_name" -C "$dest" ;;
-                    *.zip)    unzip -qo "/tmp/$asset_name" -d "$dest" ;;
-                esac
+                _ligolo_ok=1
+                if [ -s "$LIGOLO_CHECKSUMS" ]; then
+                    _ligolo_expected="$(awk -v f="$asset_name" '$2==f {print $1}' "$LIGOLO_CHECKSUMS")"
+                    if [ -n "$_ligolo_expected" ]; then
+                        if ! _verify_checksum "/tmp/$asset_name" sha256 "$_ligolo_expected"; then
+                            warn "Checksum mismatch for $asset_name — skipping this asset"
+                            _ligolo_ok=0
+                        fi
+                    else
+                        warn "No checksum entry for $asset_name — proceeding unverified"
+                    fi
+                else
+                    warn "No checksum manifest for ligolo-ng ${LIGOLO_VERSION} — proceeding unverified"
+                fi
+
+                if [ "$_ligolo_ok" -eq 1 ]; then
+                    case "$asset_name" in
+                        *.tar.gz) tar -xzf "/tmp/$asset_name" -C "$dest" ;;
+                        *.zip)    unzip -qo "/tmp/$asset_name" -d "$dest" ;;
+                    esac
+                    chmod +x "$dest"/agent "$dest"/proxy 2>/dev/null || true
+                    echo "$LIGOLO_VERSION" > "$dest/.version"
+                    LIGOLO_COUNT=$(( LIGOLO_COUNT + 1 ))
+                else
+                    LIGOLO_FAILED=$(( LIGOLO_FAILED + 1 ))
+                fi
                 rm -f "/tmp/$asset_name"
-                chmod +x "$dest"/agent "$dest"/proxy 2>/dev/null || true
-                echo "$LIGOLO_VERSION" > "$dest/.version"
-                LIGOLO_COUNT=$(( LIGOLO_COUNT + 1 ))
             else
                 rm -f "/tmp/$asset_name"
                 LIGOLO_FAILED=$(( LIGOLO_FAILED + 1 ))
             fi
         done < <(printf '%s' "$LIGOLO_JSON" \
             | jq -r '.assets[] | select(.name | test("^ligolo-ng_(agent|proxy)_")) | "\(.name)\t\(.browser_download_url)"')
+        rm -f "$LIGOLO_CHECKSUMS"
 
         if [ "$LIGOLO_COUNT" -gt 0 ]; then
             ok "ligolo-ng ${LIGOLO_VERSION}: ${LIGOLO_COUNT} platform binaries → $LIGOLO_DIR/{agent,proxy}/<platform>/"
         else
             info "ligolo-ng ${LIGOLO_VERSION} — all platform binaries already up to date"
         fi
+
+        _record_version "ligolo-ng" "$LIGOLO_VERSION"
 
         if [ "$LIGOLO_FAILED" -gt 0 ]; then
             warn "${LIGOLO_FAILED} ligolo-ng asset(s) failed to download — re-run the script to retry just those (not checkpointed)"
@@ -1812,3 +2085,73 @@ printf "  ${CYAN}→${RESET}  ${DIM}Ligolo-ng proxy (run inside container):${RES
 printf "  ${CYAN}→${RESET}  ${DIM}Ligolo-ng agents (push to targets):${RESET}     ${BOLD}/opt/my-resources/bin/ligolo-ng/agent/<platform>/agent${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${DIM}Both re-download only when a newer GitHub release is published.${RESET}\n"
 printf "\n"
+
+# Same closing instructions as above, as plain text, so they survive the
+# terminal session ending or scrolling away.
+cat > "$HOME/Tools/NEXT_STEPS.md" <<EOF
+# Exegol Setup — Next Steps
+
+## General
+- Open a new shell so zsh, the exegol alias + argcomplete take effect.
+- Press prefix + I inside tmux to install TPM plugins.
+- Pull your first image:  exegol install full
+- Start a container:      exegol start test full
+- If tmux falls back to bash, start with: -e SHELL=/usr/bin/zsh
+- my-resources mounts at:  /opt/my-resources
+- Full log: $LOG
+
+## Neovim — after first launch
+lazy.nvim installs plugins on first open; markdown-preview.nvim runs npm install
+and leaves a dirty yarn.lock that blocks future updates. Clear it once:
+  git -C ~/.local/share/nvim/lazy/markdown-preview.nvim checkout -- app/yarn.lock
+
+## A note on the zsh integration
+Exegol APPENDS my-resources/setup/zsh/zshrc to its own zshrc — it does NOT
+replace it. If you see plugin double-load or theme weirdness, edit
+~/.exegol/my-resources/setup/zsh/zshrc on the HOST and recreate the container.
+Per-box vars live in /workspace/.env — set with update_var box 10.10.10.5
+
+## SSH secrets / age key
+Age key persists at ~/.config/sops/age/keys.txt (chmod 600)
+Rotate SSH keys: SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops ~/.dotfiles/secrets/ssh_keys.yaml
+Re-run SSH deploy only: ./exegol-setup.sh --force --only=ssh_secrets
+
+## Burp Suite Pro — finish these MANUAL steps on the host
+The JDK tarball and helper script are already in place. You still need:
+1. Download the Burp Pro Linux installer from https://portswigger.net/users/
+   (login required — license is bound to your account)
+2. cd ~/.exegol/my-resources/bin/ && bash burpsuite_pro_linux_*.sh
+   Install path: ~/.exegol/my-resources/bin/BurpSuitePro
+3. Launch Burp on the host once, paste your license key, complete activation
+   (burns ONE activation — propagates to all containers via prefs.xml)
+4. cp ~/.java/.userPrefs/burp/prefs.xml ~/.exegol/my-resources/bin/
+
+Then, INSIDE each new container (run ONCE per container):
+  /opt/my-resources/bin/java-burp-setup.sh
+  Launch Burp: burp
+
+## VPN configs
+Pass .ovpn per-engagement: exegol start <name> full --vpn <path>
+
+## Pentest Services (HackTricks, RevShells, Nessus)
+Edit ~/Tools/.env with your Nessus activation code, username, and password
+Start all:  ~/Tools/start-services.sh start
+HackTricks  → http://localhost:3337   (allow ~5 min to build)
+RevShells   → http://localhost:9988
+Nessus      → https://localhost:8834  (allow ~2 min to start)
+Nessus only: ~/Tools/start-nessus.sh start
+
+## Cloud tooling (gcloud / pyenv / prowler)
+Authenticate GCP:  gcloud auth login && gcloud auth application-default login
+pyenv needs a new shell before pyenv is on PATH.
+Prowler is pinned to the pyenv ${PYENV_PY} interpreter, not system python.
+Run a scan:  prowler gcp / prowler aws / prowler azure
+
+## SharpCollection & Ligolo-ng
+SharpCollection (NetFramework_4.7_x86): /opt/my-resources/bin/SharpCollection/NetFramework_4.7_x86
+Ligolo-ng proxy (run inside container): /opt/my-resources/bin/ligolo-ng/proxy/<platform>/proxy
+Ligolo-ng agents (push to targets):     /opt/my-resources/bin/ligolo-ng/agent/<platform>/agent
+Both re-download only when a newer GitHub release is published.
+EOF
+echo "Next steps also saved to ~/Tools/NEXT_STEPS.md" | tee -a "$LOG" >/dev/null
+printf "  ${DIM}Next steps also saved to${RESET} ${BOLD}~/Tools/NEXT_STEPS.md${RESET}\n\n"
