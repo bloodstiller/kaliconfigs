@@ -177,8 +177,11 @@ _verify_checksum() {
 # stuck DNS resolve or credential prompt, which never transfers a byte so
 # lowSpeedLimit alone wouldn't catch it); http.lowSpeedLimit/Time guards a
 # connected-but-crawling transfer. Together they're stronger than either alone.
+# The 600s cap is generous on purpose — lowSpeedLimit/Time already kills a
+# genuinely stalled transfer within 30s, so this only bounds repos that are
+# large but actively transferring (e.g. HackTricks' wiki, images and all).
 _git_clone_retry() {
-    timeout 120 git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=30 clone "$@"
+    timeout 600 git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=30 clone "$@"
 }
 
 # _git_update_or_clone <repo-url> <dest-dir> [extra clone args...]
@@ -1521,21 +1524,38 @@ else
 
     mkdir -p "$HOME/Tools"
 
+    # HackTricks (large wiki, images and all) and revshells are read-only
+    # vendored resources, not required for the rest of the script — a slow
+    # connection or a dead upstream shouldn't take down the whole run. Each
+    # clone is soft-failed individually and the section is only checkpointed
+    # once both actually succeeded, so a failed one is retried on next run.
+    hacktricks_ok=1
+    revshells_ok=1
+
     if [ ! -d "$HOME/Tools/hacktricks" ]; then
-        spin "clone HackTricks wiki"   _git_update_or_clone https://github.com/HackTricks-wiki/hacktricks "$HOME/Tools/hacktricks"
+        if ! spin "clone HackTricks wiki"   _git_update_or_clone https://github.com/HackTricks-wiki/hacktricks "$HOME/Tools/hacktricks"; then
+            warn "HackTricks wiki clone failed — will retry next run"
+            hacktricks_ok=0
+        fi
     else
         spin_soft "update HackTricks wiki"  _git_update_or_clone https://github.com/HackTricks-wiki/hacktricks "$HOME/Tools/hacktricks"
     fi
 
     if [ ! -d "$HOME/Tools/reverse-shell-generator" ]; then
-        spin "clone revshells"         _git_update_or_clone https://github.com/0dayCTF/reverse-shell-generator.git "$HOME/Tools/reverse-shell-generator"
+        if ! spin "clone revshells"         _git_update_or_clone https://github.com/0dayCTF/reverse-shell-generator.git "$HOME/Tools/reverse-shell-generator"; then
+            warn "revshells clone failed — will retry next run"
+            revshells_ok=0
+        fi
     else
         spin_soft "update revshells"   _git_update_or_clone https://github.com/0dayCTF/reverse-shell-generator.git "$HOME/Tools/reverse-shell-generator"
     fi
-    if ! sudo docker image inspect reverse_shell_generator >/dev/null 2>&1; then
-        spin_soft "build revshells image"  sudo docker build -t reverse_shell_generator "$HOME/Tools/reverse-shell-generator"
-    else
-        info "revshells image already built — skipping"
+
+    if [ "$revshells_ok" -eq 1 ]; then
+        if ! sudo docker image inspect reverse_shell_generator >/dev/null 2>&1; then
+            spin_soft "build revshells image"  sudo docker build -t reverse_shell_generator "$HOME/Tools/reverse-shell-generator"
+        else
+            info "revshells image already built — skipping"
+        fi
     fi
 
     # ── Combined service compose (hacktricks + revshells + nessus) ────────────
@@ -1612,7 +1632,11 @@ EOF
     chmod +x "$HOME/Tools/start-services.sh"
     ok "launcher created → ~/Tools/start-services.sh"
 
-    mark_done "hacktricks_revshells"
+    if [ "$hacktricks_ok" -eq 1 ] && [ "$revshells_ok" -eq 1 ]; then
+        mark_done "hacktricks_revshells"
+    else
+        warn "HackTricks & RevShells incomplete — will retry the missing clone(s) next run"
+    fi
 fi
 
 # =============================================================================
