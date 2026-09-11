@@ -146,7 +146,7 @@ PYENV_PY           # default: 3.12 — interpreter series Prowler is pinned to
 JDK_FEATURE        # default: 21 — JDK LTS resolved via the Adoptium API
 MINICONDA_DIR      # default: $HOME/miniconda3
 CONDA_AI_ENV       # default: ai — conda env name for the ML/Jupyter stack
-CONDA_AI_PY        # default: 3.11 — python version for the conda AI env
+CONDA_AI_PY        # default: 3.12 — python version for the conda AI env
 ```
 
 `GITHUB_TOKEN` (optional, prompted for at pre-flight, never written to disk) raises the unauthenticated GitHub API rate limit from 60/hr to 5000/hr — worth setting if you're iterating on the script itself and re-running sections that hit `api.github.com` (Obsidian, Nerd Fonts, sops, ligolo-ng).

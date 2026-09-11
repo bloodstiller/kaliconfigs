@@ -150,7 +150,7 @@ PYENV_PY=3.12
 # Dedicated conda env for the ML/Jupyter stack, kept separate from pyenv/Prowler.
 MINICONDA_DIR="$HOME/miniconda3"
 CONDA_AI_ENV=ai
-CONDA_AI_PY=3.11
+CONDA_AI_PY=3.12
 
 # ── Burp Suite Pro / JDK ──────────────────────────────────────────────────────
 # JDK version is resolved at runtime via the Eclipse Temurin (Adoptium) API.
