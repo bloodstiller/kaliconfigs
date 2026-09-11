@@ -2068,24 +2068,22 @@ else
         spin_soft "conda init zsh"   "$CONDA_BIN" init zsh
         eval "$("$CONDA_BIN" shell.bash hook)"
 
-        "$CONDA_BIN" config --add channels defaults
+        # "defaults" (Anaconda's pkgs/main) deliberately excluded — its
+        # package graph mixes in prerelease Python builds with broken
+        # metadata and a tangled matplotlib/pyside6/qt6/libjpeg-turbo chain
+        # that blows up the solver with false conflicts. conda-forge +
+        # pytorch alone cover everything this section installs.
+        "$CONDA_BIN" config --remove channels defaults 2>/dev/null || true
         "$CONDA_BIN" config --add channels conda-forge
         "$CONDA_BIN" config --add channels pytorch
         "$CONDA_BIN" config --set channel_priority strict
         "$CONDA_BIN" config --set auto_activate_base false
-        ok "conda channels configured (conda-forge, pytorch) and base auto-activate disabled"
-
-        # Anaconda gates the "defaults" channel (pkgs/main, pkgs/r) behind an
-        # explicit Terms of Service acceptance — any non-interactive solve
-        # that touches it fails until this runs. Idempotent: safe every run.
-        "$CONDA_BIN" tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>&1 | tee -a "$LOG"
-        "$CONDA_BIN" tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>&1 | tee -a "$LOG"
-        ok "Anaconda Terms of Service accepted (pkgs/main, pkgs/r)"
+        ok "conda channels configured (conda-forge, pytorch; defaults excluded) and base auto-activate disabled"
 
         # The classic solver can churn for a very long time (or look hung
-        # behind our spinner) across defaults+conda-forge+pytorch under
-        # strict channel priority. libmamba solves the same environments in
-        # seconds — install it into base and switch to it before any solve.
+        # behind our spinner) on a package set this size. libmamba solves
+        # the same environments in seconds — install it into base and
+        # switch to it before any solve.
         if ! "$CONDA_BIN" list -n base 2>/dev/null | grep -q '^conda-libmamba-solver '; then
             spin "install libmamba solver" "$CONDA_BIN" install -n base -y conda-libmamba-solver
         fi
