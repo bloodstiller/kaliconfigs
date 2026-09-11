@@ -2075,6 +2075,13 @@ else
         "$CONDA_BIN" config --set auto_activate_base false
         ok "conda channels configured (conda-forge, pytorch) and base auto-activate disabled"
 
+        # Anaconda gates the "defaults" channel (pkgs/main, pkgs/r) behind an
+        # explicit Terms of Service acceptance — any non-interactive solve
+        # that touches it fails until this runs. Idempotent: safe every run.
+        "$CONDA_BIN" tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>&1 | tee -a "$LOG"
+        "$CONDA_BIN" tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>&1 | tee -a "$LOG"
+        ok "Anaconda Terms of Service accepted (pkgs/main, pkgs/r)"
+
         # The classic solver can churn for a very long time (or look hung
         # behind our spinner) across defaults+conda-forge+pytorch under
         # strict channel priority. libmamba solves the same environments in
