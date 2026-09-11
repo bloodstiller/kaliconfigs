@@ -47,7 +47,7 @@ BG_BLUE="${ESC}[44m"
 # ──────────────────────────────────────────────────────────────────────────────
 #  Step tracking & log file
 # ──────────────────────────────────────────────────────────────────────────────
-TOTAL_STEPS=26
+TOTAL_STEPS=27
 CURRENT_STEP=0
 SCRIPT_START=$(date +%s)
 
@@ -75,6 +75,7 @@ ALL_CHECKPOINTS=(
     myresources_scaffold myresources_configs myresources_pkgs load_user_setup
     wordlists burp_pro fonts ssh_secrets doom_sync vmware hacktricks_revshells
     nessus gcloud pyenv prowler claude_code sharpcollection ligolo_ng
+    conda_ai_lab
 )
 
 FORCE=0
@@ -144,6 +145,12 @@ AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 # Ubuntu bumps the system python. Change PYENV_PY to move prowler's runtime.
 PYENV_ROOT_DIR="$HOME/.pyenv"
 PYENV_PY=3.12
+
+# ── Conda / Jupyter AI Lab ────────────────────────────────────────────────────
+# Dedicated conda env for the ML/Jupyter stack, kept separate from pyenv/Prowler.
+MINICONDA_DIR="$HOME/miniconda3"
+CONDA_AI_ENV=ai
+CONDA_AI_PY=3.11
 
 # ── Burp Suite Pro / JDK ──────────────────────────────────────────────────────
 # JDK version is resolved at runtime via the Eclipse Temurin (Adoptium) API.
@@ -2033,6 +2040,74 @@ else
 fi
 
 # =============================================================================
+# 27. CONDA / JUPYTER AI LAB — Miniconda + a dedicated "ai" env with the core
+#     ML/Jupyter stack (numpy/pandas/scikit-learn/transformers/CPU-only
+#     pytorch/jupyterlab), mirroring the manual runbook this section replaces.
+# =============================================================================
+if is_done "conda_ai_lab"; then
+    skip_section "Conda / Jupyter AI Lab" "🧠"
+else
+    section "Conda / Jupyter AI Lab" "🧠"
+
+    if [ ! -d "$MINICONDA_DIR" ]; then
+        spin "download Miniconda installer" \
+            wget -q --timeout=30 --tries=3 --waitretry=3 \
+                https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+                -O /tmp/miniconda-installer.sh
+        spin "install Miniconda → $MINICONDA_DIR" \
+            bash /tmp/miniconda-installer.sh -b -u -p "$MINICONDA_DIR"
+        rm -f /tmp/miniconda-installer.sh
+    else
+        info "Miniconda already present — skipping installer"
+    fi
+
+    CONDA_BIN="$MINICONDA_DIR/bin/conda"
+
+    if [ -x "$CONDA_BIN" ]; then
+        spin_soft "conda init bash"  "$CONDA_BIN" init bash
+        spin_soft "conda init zsh"   "$CONDA_BIN" init zsh
+        eval "$("$CONDA_BIN" shell.bash hook)"
+
+        "$CONDA_BIN" config --add channels defaults
+        "$CONDA_BIN" config --add channels conda-forge
+        "$CONDA_BIN" config --add channels pytorch
+        "$CONDA_BIN" config --set channel_priority strict
+        "$CONDA_BIN" config --set auto_activate_base false
+        ok "conda channels configured (conda-forge, pytorch) and base auto-activate disabled"
+
+        if "$CONDA_BIN" env list | grep -qE "^${CONDA_AI_ENV}\s"; then
+            info "conda env '${CONDA_AI_ENV}' already exists — skipping create"
+        else
+            spin "create conda env '${CONDA_AI_ENV}' (python ${CONDA_AI_PY})" \
+                "$CONDA_BIN" create -n "$CONDA_AI_ENV" "python=${CONDA_AI_PY}" -y
+        fi
+
+        info "Installing core AI/ML package set (this takes a while, be patient)"
+        spin "conda install core AI/ML packages" \
+            "$CONDA_BIN" install -n "$CONDA_AI_ENV" -y \
+                numpy scipy pandas scikit-learn matplotlib seaborn transformers \
+                datasets tokenizers accelerate evaluate optimum huggingface_hub \
+                nltk category_encoders
+
+        spin "conda install CPU-only PyTorch" \
+            "$CONDA_BIN" install -n "$CONDA_AI_ENV" -y \
+                pytorch torchvision torchaudio cpuonly -c pytorch
+
+        spin "pip install requests, requests_toolbelt" \
+            "$CONDA_BIN" run -n "$CONDA_AI_ENV" pip install requests requests_toolbelt
+
+        spin "conda install Jupyter (lab + notebook + ipykernel)" \
+            "$CONDA_BIN" install -n "$CONDA_AI_ENV" -y \
+                jupyter jupyterlab notebook ipykernel
+
+        _record_version "miniconda" "$("$CONDA_BIN" --version | awk '{print $2}')"
+        mark_done "conda_ai_lab"
+    else
+        warn "conda not found at $CONDA_BIN after install — skipping AI/Jupyter env setup"
+    fi
+fi
+
+# =============================================================================
 # DONE
 # =============================================================================
 kill "$SUDO_KEEPALIVE_PID" 2>/dev/null
@@ -2109,6 +2184,11 @@ printf "  ${CYAN}→${RESET}  ${DIM}Ligolo-ng proxy (run inside container):${RES
 printf "  ${CYAN}→${RESET}  ${DIM}Ligolo-ng agents (push to targets):${RESET}     ${BOLD}/opt/my-resources/bin/ligolo-ng/agent/<platform>/agent${RESET}\n"
 printf "  ${CYAN}→${RESET}  ${DIM}Both re-download only when a newer GitHub release is published.${RESET}\n"
 printf "\n"
+printf "  ${BOLD}${YELLOW}🧠  Conda / Jupyter AI Lab${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}Activate the env:${RESET}  ${BOLD}conda activate %s${RESET}\n" "$CONDA_AI_ENV"
+printf "  ${CYAN}→${RESET}  ${DIM}Launch JupyterLab:${RESET}  ${BOLD}jupyter lab${RESET}\n"
+printf "  ${CYAN}→${RESET}  ${DIM}conda needs a new shell before ${RESET}${BOLD}conda${RESET}${DIM} is on PATH.${RESET}\n"
+printf "\n"
 
 # Same closing instructions as above, as plain text, so they survive the
 # terminal session ending or scrolling away.
@@ -2176,6 +2256,11 @@ SharpCollection (NetFramework_4.7_x86): /opt/my-resources/bin/SharpCollection/Ne
 Ligolo-ng proxy (run inside container): /opt/my-resources/bin/ligolo-ng/proxy/<platform>/proxy
 Ligolo-ng agents (push to targets):     /opt/my-resources/bin/ligolo-ng/agent/<platform>/agent
 Both re-download only when a newer GitHub release is published.
+
+## Conda / Jupyter AI Lab
+Activate the env:  conda activate ${CONDA_AI_ENV}
+Launch JupyterLab:  jupyter lab
+conda needs a new shell before conda is on PATH.
 EOF
 echo "Next steps also saved to ~/Tools/NEXT_STEPS.md" | tee -a "$LOG" >/dev/null
 printf "  ${DIM}Next steps also saved to${RESET} ${BOLD}~/Tools/NEXT_STEPS.md${RESET}\n\n"

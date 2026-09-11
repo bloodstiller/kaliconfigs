@@ -6,7 +6,7 @@ Companion script to the Kali workflow in [`bloodstiller/kaliconfigs`](https://gi
 
 ## What it does
 
-26 checkpointed sections. Each one is re-runnable; completion is tracked as marker files in `~/.exegol_setup_checkpoints/`. Re-running the script only does the sections that haven't completed yet — see [Re-running sections](#re-running-sections) for targeting one section directly.
+27 checkpointed sections. Each one is re-runnable; completion is tracked as marker files in `~/.exegol_setup_checkpoints/`. Re-running the script only does the sections that haven't completed yet — see [Re-running sections](#re-running-sections) for targeting one section directly.
 
 | § | Step | Touches |
 |---|---|---|
@@ -36,8 +36,9 @@ Companion script to the Kali workflow in [`bloodstiller/kaliconfigs`](https://gi
 | 24 | Claude Code | Installs Claude Code via the official installer; ensures `~/.claude/bin` on PATH |
 | 25 | SharpCollection | Sparse-checkout of `NetFramework_4.7_x86` from Flangvik's SharpCollection; `fetch --depth 1 && reset --hard` on rerun (checkpoint only marks done on success) |
 | 26 | Ligolo-ng | Latest proxy + agent binaries for every published platform, sha256-verified against the release's checksums manifest when published; per-platform `.version` stamps mean only stale platforms re-download on a deliberate rerun |
+| 27 | Conda / Jupyter AI Lab | Installs Miniconda; configures conda-forge/pytorch channels; creates an `ai` env (Python `CONDA_AI_PY`) with the core ML stack (numpy/pandas/scikit-learn/transformers/etc.), CPU-only PyTorch, and JupyterLab |
 
-At the end of a run, the same closing instructions printed to the terminal are also written to `~/Tools/NEXT_STEPS.md`, and resolved tool versions (Obsidian, JDK, sops, Nerd Fonts, ligolo-ng) are recorded in `~/Tools/INSTALLED_VERSIONS.txt`.
+At the end of a run, the same closing instructions printed to the terminal are also written to `~/Tools/NEXT_STEPS.md`, and resolved tool versions (Obsidian, JDK, sops, Nerd Fonts, ligolo-ng, miniconda) are recorded in `~/Tools/INSTALLED_VERSIONS.txt`.
 
 ## What it deliberately doesn't do
 
@@ -143,6 +144,9 @@ AGE_KEY_FILE       # default: $HOME/.config/sops/age/keys.txt
 PYENV_ROOT_DIR     # default: $HOME/.pyenv
 PYENV_PY           # default: 3.12 — interpreter series Prowler is pinned to
 JDK_FEATURE        # default: 21 — JDK LTS resolved via the Adoptium API
+MINICONDA_DIR      # default: $HOME/miniconda3
+CONDA_AI_ENV       # default: ai — conda env name for the ML/Jupyter stack
+CONDA_AI_PY        # default: 3.11 — python version for the conda AI env
 ```
 
 `GITHUB_TOKEN` (optional, prompted for at pre-flight, never written to disk) raises the unauthenticated GitHub API rate limit from 60/hr to 5000/hr — worth setting if you're iterating on the script itself and re-running sections that hit `api.github.com` (Obsidian, Nerd Fonts, sops, ligolo-ng).
