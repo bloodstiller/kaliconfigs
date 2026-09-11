@@ -2075,30 +2075,47 @@ else
         "$CONDA_BIN" config --set auto_activate_base false
         ok "conda channels configured (conda-forge, pytorch) and base auto-activate disabled"
 
+        # The classic solver can churn for a very long time (or look hung
+        # behind our spinner) across defaults+conda-forge+pytorch under
+        # strict channel priority. libmamba solves the same environments in
+        # seconds — install it into base and switch to it before any solve.
+        if ! "$CONDA_BIN" list -n base 2>/dev/null | grep -q '^conda-libmamba-solver '; then
+            spin "install libmamba solver" "$CONDA_BIN" install -n base -y conda-libmamba-solver
+        fi
+        "$CONDA_BIN" config --set solver libmamba
+        ok "conda solver set to libmamba"
+
+        # The remaining steps are run un-spun (not via `spin`) — they're the
+        # heaviest solves in this section, and conda's own solve/download
+        # progress is the best signal we have that it's alive rather than
+        # hung behind a static spinner that looks the same either way.
         if "$CONDA_BIN" env list | grep -qE "^${CONDA_AI_ENV}\s"; then
             info "conda env '${CONDA_AI_ENV}' already exists — skipping create"
         else
-            spin "create conda env '${CONDA_AI_ENV}' (python ${CONDA_AI_PY})" \
-                "$CONDA_BIN" create -n "$CONDA_AI_ENV" "python=${CONDA_AI_PY}" -y
+            info "Creating conda env '${CONDA_AI_ENV}' (python ${CONDA_AI_PY})"
+            "$CONDA_BIN" create -n "$CONDA_AI_ENV" "python=${CONDA_AI_PY}" -y
+            ok "conda env '${CONDA_AI_ENV}' created"
         fi
 
         info "Installing core AI/ML package set (this takes a while, be patient)"
-        spin "conda install core AI/ML packages" \
-            "$CONDA_BIN" install -n "$CONDA_AI_ENV" -y \
-                numpy scipy pandas scikit-learn matplotlib seaborn transformers \
-                datasets tokenizers accelerate evaluate optimum huggingface_hub \
-                nltk category_encoders
+        "$CONDA_BIN" install -n "$CONDA_AI_ENV" -y \
+            numpy scipy pandas scikit-learn matplotlib seaborn transformers \
+            datasets tokenizers accelerate evaluate optimum huggingface_hub \
+            nltk category_encoders
+        ok "core AI/ML packages installed"
 
-        spin "conda install CPU-only PyTorch" \
-            "$CONDA_BIN" install -n "$CONDA_AI_ENV" -y \
-                pytorch torchvision torchaudio cpuonly -c pytorch
+        info "Installing CPU-only PyTorch"
+        "$CONDA_BIN" install -n "$CONDA_AI_ENV" -y \
+            pytorch torchvision torchaudio cpuonly -c pytorch
+        ok "PyTorch (CPU-only) installed"
 
         spin "pip install requests, requests_toolbelt" \
             "$CONDA_BIN" run -n "$CONDA_AI_ENV" pip install requests requests_toolbelt
 
-        spin "conda install Jupyter (lab + notebook + ipykernel)" \
-            "$CONDA_BIN" install -n "$CONDA_AI_ENV" -y \
-                jupyter jupyterlab notebook ipykernel
+        info "Installing Jupyter (lab + notebook + ipykernel)"
+        "$CONDA_BIN" install -n "$CONDA_AI_ENV" -y \
+            jupyter jupyterlab notebook ipykernel
+        ok "Jupyter installed"
 
         _record_version "miniconda" "$("$CONDA_BIN" --version | awk '{print $2}')"
         mark_done "conda_ai_lab"
