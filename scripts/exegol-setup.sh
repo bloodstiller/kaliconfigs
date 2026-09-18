@@ -1124,6 +1124,16 @@ else
     echo "[!] /opt/my-resources/wordlists/Hacking-APIs not found — run host setup first"
 fi
 
+# Symlink statistically-likely-usernames wordlist to the standard container
+# wordlist path so it sits alongside seclists at /usr/share/wordlists/.
+if [ -d /opt/my-resources/wordlists/statistically-likely-usernames ]; then
+    mkdir -p /usr/share/wordlists
+    ln -sfn /opt/my-resources/wordlists/statistically-likely-usernames /usr/share/wordlists/statistically-likely-usernames
+    echo "[+] Linked statistically-likely-usernames → /usr/share/wordlists/statistically-likely-usernames"
+else
+    echo "[!] /opt/my-resources/wordlists/statistically-likely-usernames not found — run host setup first"
+fi
+
 # Symlink nvim config from my-resources into the container's config directory.
 if [ -d /opt/my-resources/setup/nvim ]; then
     mkdir -p /root/.config
@@ -1178,12 +1188,13 @@ fi
 # =============================================================================
 # 12. WORDLISTS
 #     SecLists is already in exegol full image at /usr/share/seclists,
-#     so we skip it. Hacking-APIs is NOT — clone it once on the host.
+#     so we skip it. Hacking-APIs and statistically-likely-usernames are NOT —
+#     clone them once on the host.
 # =============================================================================
 if is_done "wordlists"; then
-    skip_section "Wordlists (Hacking-APIs)" "📚"
+    skip_section "Wordlists (Hacking-APIs, statistically-likely-usernames)" "📚"
 else
-    section "Wordlists (Hacking-APIs)" "📚"
+    section "Wordlists (Hacking-APIs, statistically-likely-usernames)" "📚"
     mkdir -p "$WORDLISTS_DIR"
 
     if [ ! -d "$EXEGOL_RES/wordlists/Hacking-APIs" ]; then
@@ -1198,6 +1209,20 @@ else
 
     if [ ! -L "$WORDLISTS_DIR/Hacking-APIs" ]; then
         safe_link_user "$EXEGOL_RES/wordlists/Hacking-APIs" "$WORDLISTS_DIR/Hacking-APIs"
+    fi
+
+    if [ ! -d "$EXEGOL_RES/wordlists/statistically-likely-usernames" ]; then
+        spin "clone statistically-likely-usernames wordlist" \
+            _git_update_or_clone https://github.com/insidetrust/statistically-likely-usernames.git \
+                "$EXEGOL_RES/wordlists/statistically-likely-usernames" --depth 1
+    else
+        spin_soft "update statistically-likely-usernames wordlist" \
+            _git_update_or_clone https://github.com/insidetrust/statistically-likely-usernames.git \
+                "$EXEGOL_RES/wordlists/statistically-likely-usernames" --depth 1
+    fi
+
+    if [ ! -L "$WORDLISTS_DIR/statistically-likely-usernames" ]; then
+        safe_link_user "$EXEGOL_RES/wordlists/statistically-likely-usernames" "$WORDLISTS_DIR/statistically-likely-usernames"
     fi
 
     mark_done "wordlists"
