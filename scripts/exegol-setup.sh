@@ -548,7 +548,7 @@ spin "install host packages" sudo apt-get install -y -qq \
     age \
     ca-certificates curl wget git unzip jq \
     python3 python3-pip python3-venv pipx python3-argcomplete python3-yaml \
-    zsh tmux vim eza atuin bat ripgrep fd-find fzf \
+    zsh tmux vim eza atuin bat ripgrep fd-find fzf libtool libtool-bin cmake \
     keepassxc \
     emacs \
     btop \
@@ -561,7 +561,6 @@ spin "install host packages" sudo apt-get install -y -qq \
     hugo pandoc \
     ansifilter \
     alacritty \
-    kitty \
     luarocks libmagickwand-dev \
     nodejs npm
 

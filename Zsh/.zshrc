@@ -188,6 +188,7 @@ alias ls='exa -T -L=1 -a -B -h -l -g --icons'
 alias lsl='exa -T -L=2 -a -B -h -l -g --icons'
 alias lss='exa -T -L=1 -B -h -l -g --icons'
 alias cat='batcat'
+alias python='python3'
 alias doom='~/.config/emacs/bin/doom'
 alias dt='~/.dotfiles'
 alias blog='~/Blog'
@@ -238,3 +239,19 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Claude Code
 export PATH="$HOME/.claude/bin:$PATH"
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/home/martin/miniconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/home/martin/miniconda3/etc/profile.d/conda.sh" ]; then
+        . "/home/martin/miniconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/home/martin/miniconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
